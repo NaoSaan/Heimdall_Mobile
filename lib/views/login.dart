@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'menu.dart';
 
 class LoginScreen extends StatefulWidget {
   static const String routeName = '/login';
@@ -50,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: () {
                 // Aquí iría la lógica para el login
+               Navigator.pushNamed(context, MenuScreen.routeName);
               },
               child: const Text('Iniciar sesión'),
             ),

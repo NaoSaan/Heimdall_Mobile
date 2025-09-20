@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'views/login.dart';
+import 'views/condenas.dart';
+import 'views/informes.dart';
+import 'views/menu.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +17,12 @@ class MyApp extends StatelessWidget {
       title: 'Heimdall',
       initialRoute: LoginScreen.routeName,
       debugShowCheckedModeBanner: false,
-      routes: {LoginScreen.routeName: (context) => const LoginScreen()},
+      routes: {
+        LoginScreen.routeName: (context) => const LoginScreen(),
+        CondenasScreen.routeName: (context) => const CondenasScreen(),
+        InformesScreen.routeName: (context) => const InformesScreen(),
+        MenuScreen.routeName: (context) => const MenuScreen(),
+      },
     );
   }
 }
