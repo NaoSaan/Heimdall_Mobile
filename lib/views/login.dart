@@ -83,8 +83,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // Botón de login
             ElevatedButton(
-              onPressed: () {
+             onPressed: () {
                 // Aquí iría la lógica para el login
+               Navigator.pushNamed(context, MenuScreen.routeName);
               },
               child: const Text('Iniciar sesión'),
             ),
