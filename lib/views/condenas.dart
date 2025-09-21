@@ -97,6 +97,7 @@ class _CondenasScreenState extends State<CondenasScreen> {
                       // Se cambia el color del ícono a negro.
                       color: Colors.black,
                       onPressed: () {
+                        Navigator.pushNamed(context, '/informes');
                         // Acción para el botón de lista (no funcional por ahora)
                       },
                     ),

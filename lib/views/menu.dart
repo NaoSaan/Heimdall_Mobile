@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'Informes.dart';
 
 class MenuScreen extends StatelessWidget {
   static const String routeName = '/menu';
@@ -37,7 +38,8 @@ class MenuScreen extends StatelessWidget {
                   _MenuButton(
                     label: 'Informes',
                     icon: Icons.article,
-                    onTap: () => Navigator.pushNamed(context, '/informes'),
+                    onTap: () =>
+                        Navigator.pushNamed(context, InformesScreen.routeName),
                     height: 110,
                   ),
                 ],
