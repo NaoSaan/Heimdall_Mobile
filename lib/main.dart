@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heimdall_flutter/views/loadpage.dart';
 import 'views/login.dart';
 import 'views/condenas.dart';
 import 'views/informes.dart';
@@ -16,14 +17,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Heimdall',
-      initialRoute: LoginScreen.routeName,
+      initialRoute: Loadpage.routeName,
       debugShowCheckedModeBanner: false,
       routes: {
         LoginScreen.routeName: (context) => const LoginScreen(),
         CondenasScreen.routeName: (context) => const CondenasScreen(),
         InformesScreen.routeName: (context) => const InformesScreen(),
         MenuScreen.routeName: (context) => const MenuScreen(),
-        CondenasCiuScreen.routeName: (context) => const CondenasCiuScreen()
+        CondenasCiuScreen.routeName: (context) => const CondenasCiuScreen(),
+        Loadpage.routeName: (context) => const Loadpage(),
       },
     );
   }

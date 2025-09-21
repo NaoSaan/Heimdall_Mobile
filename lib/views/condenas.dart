@@ -11,6 +11,7 @@ class CondenasScreen extends StatefulWidget {
 class _CondenasScreenState extends State<CondenasScreen> {
   @override
   Widget build(BuildContext context) {
+    final agente = ModalRoute.of(context)!.settings.arguments as String;
     // Reemplazamos el Placeholder con el Scaffold que contiene el diseño.
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -19,9 +20,25 @@ class _CondenasScreenState extends State<CondenasScreen> {
       body: SafeArea(
         child: Padding(
           // Se aumenta el padding horizontal.
-          padding: const EdgeInsets.symmetric(horizontal: 50.0),
+          padding: const EdgeInsets.symmetric(horizontal: 3.0),
           child: Column(
             children: [
+              Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    agente, 
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
               const SizedBox(height: 20),
               // --- Barra de Búsqueda ---
               TextField(
@@ -87,7 +104,7 @@ class _CondenasScreenState extends State<CondenasScreen> {
                       color: Colors.black,
                       onPressed: () {
                         // Acción para el botón de inicio (no funcional por ahora)
-                        Navigator.pushNamed(context, '/menu');
+                        Navigator.pushNamed(context, '/menu', arguments: agente);
                       },
                     ),
                     // Botón de Lista (List)
