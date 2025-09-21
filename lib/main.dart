@@ -3,6 +3,7 @@ import 'views/login.dart';
 import 'views/condenas.dart';
 import 'views/informes.dart';
 import 'views/menu.dart';
+import 'views/condenasciu.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
         CondenasScreen.routeName: (context) => const CondenasScreen(),
         InformesScreen.routeName: (context) => const InformesScreen(),
         MenuScreen.routeName: (context) => const MenuScreen(),
+        CondenasCiuScreen.routeName: (context) => const CondenasCiuScreen()
       },
     );
   }
