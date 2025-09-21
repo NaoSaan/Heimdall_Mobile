@@ -13,7 +13,13 @@ class MenuScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
             // Logo
-            Center(child: Image.asset('lib/assets/images/logo.jpeg', width: 300, height: 300)),
+            Center(
+              child: Image.asset(
+                'lib/assets/images/logo.jpeg',
+                width: 300,
+                height: 300,
+              ),
+            ),
             const SizedBox(height: 32),
 
             // Buttons area - centered vertically
@@ -44,7 +50,11 @@ class MenuScreen extends StatelessWidget {
               child: GestureDetector(
                 onTap: () {
                   // Back to login
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 },
                 child: Column(
                   children: [
@@ -55,14 +65,17 @@ class MenuScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 4),
+                        ],
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
                           'lib/assets/images/logout.png',
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.exit_to_app, size: 32),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.exit_to_app, size: 32),
                         ),
                       ),
                     ),
@@ -84,7 +97,12 @@ class _MenuButton extends StatelessWidget {
   final VoidCallback onTap;
   final double height;
 
-  const _MenuButton({required this.label, required this.icon, required this.onTap, this.height = 84});
+  const _MenuButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.height = 84,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -13,6 +13,7 @@ class _CondenasScreenState extends State<CondenasScreen> {
   Widget build(BuildContext context) {
     // Reemplazamos el Placeholder con el Scaffold que contiene el diseño.
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       // Se aplica el color de fondo solicitado.
       backgroundColor: const Color(0xFFe7e7e7),
       body: SafeArea(
@@ -86,6 +87,7 @@ class _CondenasScreenState extends State<CondenasScreen> {
                       color: Colors.black,
                       onPressed: () {
                         // Acción para el botón de inicio (no funcional por ahora)
+                        Navigator.pushNamed(context, '/menu');
                       },
                     ),
                     // Botón de Lista (List)
