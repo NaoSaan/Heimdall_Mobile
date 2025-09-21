@@ -5,17 +5,24 @@ import 'views/condenas.dart';
 import 'views/informes.dart';
 import 'views/menu.dart';
 import 'views/condenasciu.dart';
+import 'views/secondplane.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    SecondPlaneHandler(
+      child: const MyApp(),
+    ),
+  );
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Heimdall',
       initialRoute: Loadpage.routeName,
       debugShowCheckedModeBanner: false,

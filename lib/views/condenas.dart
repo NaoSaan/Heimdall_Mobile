@@ -12,24 +12,20 @@ class _CondenasScreenState extends State<CondenasScreen> {
   @override
   Widget build(BuildContext context) {
     final agente = ModalRoute.of(context)!.settings.arguments as String;
-    // Reemplazamos el Placeholder con el Scaffold que contiene el diseño.
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      // Se aplica el color de fondo solicitado.
       backgroundColor: const Color(0xFFe7e7e7),
       body: SafeArea(
-        child: Padding(
-          // Se aumenta el padding horizontal.
-          padding: const EdgeInsets.symmetric(horizontal: 3.0),
-          child: Column(
-            children: [
-              Padding(
-              padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0, top: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    agente, 
+                    agente,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -39,90 +35,83 @@ class _CondenasScreenState extends State<CondenasScreen> {
               ),
             ),
 
-              const SizedBox(height: 20),
-              // --- Barra de Búsqueda ---
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Buscar...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15.0),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide.none, // Sin borde visible
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30.0),
-                    // Se cambia el color del borde al estar seleccionado a negro.
-                    borderSide: const BorderSide(color: Colors.black),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // --- Lista de Tarjetas ---
-              Expanded(
-                child: ListView.builder(
-                  itemCount: 7, // Número de tarjetas a mostrar
-                  itemBuilder: (context, index) {
-                    // Datos de ejemplo para cada tarjeta
-                    final ids = [
-                      "0001",
-                      "0002",
-                      "0003",
-                      "0004",
-                      "0005",
-                      "0006",
-                      "0007",
-                    ];
-                    return InfoCard(
-                      id: ids[index],
-                      asunto: 'Asunto',
-                      curp: 'CURP-EJEMPLO',
-                      estatus: 'estatus',
-                    );
-                  },
-                ),
-              ),
-
-              // --- Botones Inferiores ---
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            // --- Contenido principal ---
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 50.0),
+                child: Column(
                   children: [
-                    // Botón de Inicio (Home)
-                    IconButton(
-                      icon: const Icon(Icons.home_outlined),
-                      iconSize: 75.0,
-                      // Se cambia el color del ícono a negro.
-                      color: Colors.black,
-                      onPressed: () {
-                        // Acción para el botón de inicio (no funcional por ahora)
-                        Navigator.pushNamed(context, '/menu', arguments: agente);
-                      },
+                    const SizedBox(height: 20),
+                    // --- Barra de Búsqueda ---
+                    TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Buscar...',
+                        prefixIcon: const Icon(Icons.search),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 15.0),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: const BorderSide(color: Colors.black),
+                        ),
+                      ),
                     ),
-                    // Botón de Lista (List)
-                    IconButton(
-                      icon: const Icon(Icons.library_books_outlined),
-                      iconSize: 75.0,
-                      // Se cambia el color del ícono a negro.
-                      color: Colors.black,
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/informes');
-                        // Acción para el botón de lista (no funcional por ahora)
-                      },
+                    const SizedBox(height: 20),
+
+                    // --- Lista de Tarjetas ---
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: 7,
+                        itemBuilder: (context, index) {
+                          final ids = ["0001","0002","0003","0004","0005","0006","0007"];
+                          return InfoCard(
+                            id: ids[index],
+                            asunto: 'Asunto',
+                            curp: 'CURP-EJEMPLO',
+                            estatus: 'estatus',
+                          );
+                        },
+                      ),
+                    ),
+
+                    // --- Botones Inferiores ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.home_outlined),
+                            iconSize: 75.0,
+                            color: Colors.black,
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/menu', arguments: agente);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.library_books_outlined),
+                            iconSize: 75.0,
+                            color: Colors.black,
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/informes', arguments: agente);
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -130,28 +119,26 @@ class _CondenasScreenState extends State<CondenasScreen> {
 }
 
 // --- Widget para la Tarjeta de Información ---
-// Lo mantenemos como un widget separado para mayor claridad y reutilización.
 class InfoCard extends StatelessWidget {
   final String id;
   final String asunto;
-  final String curp; // Se añade el campo para la CURP
+  final String curp;
   final String estatus;
 
   const InfoCard({
     super.key,
     required this.id,
     required this.asunto,
-    required this.curp, // Se añade al constructor
+    required this.curp,
     required this.estatus,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2.0, // Sombra sutil
+      elevation: 2.0,
       margin: const EdgeInsets.only(bottom: 12.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-      // Se establece explícitamente el color de fondo de la tarjeta a blanco.
       color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
@@ -163,11 +150,9 @@ class InfoCard extends StatelessWidget {
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                // Se establece el color del texto a negro.
                 color: Colors.black,
               ),
             ),
-            // Se reemplaza el Text por una Column para apilar el asunto y la CURP.
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -175,15 +160,13 @@ class InfoCard extends StatelessWidget {
                   asunto,
                   style: const TextStyle(
                     fontSize: 16,
-                    // Se establece el color del texto a negro.
                     color: Colors.black,
                   ),
                 ),
                 Text(
                   curp,
                   style: const TextStyle(
-                    fontSize: 14, // Fuente ligeramente más pequeña para la CURP
-                    // Se establece el color del texto a negro.
+                    fontSize: 14,
                     color: Colors.black,
                   ),
                 ),
@@ -193,7 +176,6 @@ class InfoCard extends StatelessWidget {
               estatus,
               style: const TextStyle(
                 fontSize: 16,
-                // Se establece el color del texto a negro.
                 color: Colors.black,
               ),
             ),

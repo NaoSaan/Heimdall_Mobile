@@ -13,7 +13,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
   Widget build(BuildContext context) {
     // Se recibe el argumento 'ciudadano' para mostrarlo en pantalla.
     final ciudadano = ModalRoute.of(context)!.settings.arguments as String;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFe7e7e7),
       body: SafeArea(
@@ -61,10 +61,14 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                       iconSize: 48.0,
                       color: Colors.black54,
                       onPressed: () {
-                        // Acción para el botón de inicio
-                        Navigator.pushNamed(context, '/login');
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/login',
+                          (Route<dynamic> route) =>
+                              false, // elimina todas las rutas anteriores
+                        );
                       },
-                    ),    
+                    ),
                   ],
                 ),
               ),
@@ -78,9 +82,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
 
 // --- Widget para la Tarjeta de Transacción (diseño de la imagen) ---
 class TransactionCard extends StatelessWidget {
-  const TransactionCard({
-    super.key,
-  });
+  const TransactionCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -99,10 +101,7 @@ class TransactionCard extends StatelessWidget {
               children: [
                 Text(
                   'Asunto',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 SizedBox(height: 2),
                 Text(
@@ -118,7 +117,7 @@ class TransactionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12.0),
               decoration: const BoxDecoration(
-                color: Color(0xFFb2ffc8), 
+                color: Color(0xFFb2ffc8),
                 shape: BoxShape.circle,
               ),
               child: const Text(
