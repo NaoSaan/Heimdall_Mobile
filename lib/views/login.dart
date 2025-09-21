@@ -40,37 +40,40 @@ class _LoginScreenState extends State<LoginScreen> {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'N_Placa': user, 'password': pwd}),
         );
+        final data = jsonDecode(response.body);
+
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
           final agenteData = data['agente'];
           final nombre = agenteData['Nombre'];
           final aP = agenteData['APaterno'];
           final aM = agenteData['AMaterno'];
-          final agente = "$nombre $aP $aM"; 
-          Navigator.pushNamed(
-            context,
-            MenuScreen.routeName,
-            arguments: agente,  
-          );
+          final agente = "$nombre $aP $aM";
+          Navigator.pushNamed(context, MenuScreen.routeName, arguments: agente);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${response.statusCode}')),
-          );
+          final messageAPI = data['message'] ?? 'Error desconocido';
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $messageAPI')));
         }
-      }
-      else{
-         final response = await http.post(
+      } else {
+        final response = await http.post(
           Uri.parse('https://heimdall-qxbv.onrender.com/api/auth/loginCiu'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'CURP': user, 'password': pwd}),
         );
+        final data = jsonDecode(response.body);
+
         if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          Navigator.pushNamed(context, CondenasCiuScreen.routeName);
+          final nombre = data['Nombre'];
+          final aP = data['APaterno'];
+          final aM = data['AMaterno'];
+          final ciudadano = "$nombre $aP $aM";
+          Navigator.pushNamed(context, CondenasCiuScreen.routeName, arguments: ciudadano);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${response.statusCode}')),
-          );
+          final messageAPI = data['message'] ?? 'Error desconocido';
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $messageAPI')));
         }
       }
     } catch (e) {
@@ -87,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE7E7E7), 
+      backgroundColor: const Color(0xFFE7E7E7),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

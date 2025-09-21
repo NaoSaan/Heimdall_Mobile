@@ -7,11 +7,30 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final agente = ModalRoute.of(context)!.settings.arguments as String;
+
     return Scaffold(
       backgroundColor: Colors.grey[200],
       body: SafeArea(
         child: Column(
           children: [
+            // Usuario logueado
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    agente, 
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 24),
             // Logo
             Center(
@@ -31,15 +50,14 @@ class MenuScreen extends StatelessWidget {
                   _MenuButton(
                     label: 'Condenas',
                     icon: Icons.gavel,
-                    onTap: () => Navigator.pushNamed(context, '/condenas'),
+                    onTap: () => Navigator.pushNamed(context, '/condenas', arguments: agente),
                     height: 110,
                   ),
                   const SizedBox(height: 20),
                   _MenuButton(
                     label: 'Informes',
                     icon: Icons.article,
-                    onTap: () =>
-                        Navigator.pushNamed(context, InformesScreen.routeName),
+                    onTap: () => Navigator.pushNamed(context, '/informes', arguments: agente),
                     height: 110,
                   ),
                 ],
