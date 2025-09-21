@@ -5,7 +5,7 @@ import 'views/condenas.dart';
 import 'views/informes.dart';
 import 'views/menu.dart';
 import 'views/condenasciu.dart';
-import 'views/secondplane.dart';
+import 'views/segundoplano.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
