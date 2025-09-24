@@ -10,18 +10,19 @@ class MenuScreen extends StatelessWidget {
     final agente = ModalRoute.of(context)!.settings.arguments as String;
 
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      resizeToAvoidBottomInset: false,
+      backgroundColor: const Color(0xFFe7e7e7),
       body: SafeArea(
         child: Column(
           children: [
             // Usuario logueado
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.only(right: 16.0, top: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    agente, 
+                    agente,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -30,78 +31,59 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-            // Logo
-            Center(
-              child: Image.asset(
-                'lib/assets/images/logo.jpeg',
-                width: 300,
-                height: 300,
+            // Logo centrado
+            Padding(
+              padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
+              child: Center(
+                child: Image.asset(
+                  'lib/assets/images/logo.jpeg',
+                  width: 220,
+                  height: 220,
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Buttons area - centered vertically
-            Expanded(
+            // Botones tipo tarjeta
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 80.0), // Más pequeño el ancho
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _MenuButton(
+                  _MenuCardButton(
                     label: 'Condenas',
                     icon: Icons.gavel,
                     onTap: () => Navigator.pushNamed(context, '/condenas', arguments: agente),
-                    height: 110,
+                    height: 80, // Más alto
                   ),
                   const SizedBox(height: 20),
-                  _MenuButton(
+                  _MenuCardButton(
                     label: 'Informes',
                     icon: Icons.article,
                     onTap: () => Navigator.pushNamed(context, '/informes', arguments: agente),
-                    height: 110,
+                    height: 80, // Más alto
                   ),
                 ],
               ),
             ),
-
-            // Logout image button at bottom
+            const Spacer(),
+            // Botón de logout grande y abajo estilo IconButton
             Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: GestureDetector(
-                onTap: () {
-                  // Back to login
+              padding: const EdgeInsets.only(bottom: 24.0, top: 8.0),
+              child: IconButton(
+                icon: Image.asset(
+                  'lib/assets/images/logout.png',
+                  width: 75,
+                  height: 75,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.exit_to_app, size: 60),
+                ),
+                iconSize: 75.0,
+                onPressed: () {
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     '/login',
                     (route) => false,
                   );
                 },
-                child: Column(
-                  children: [
-                    // Use logout asset image if present, otherwise fallback icon
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black12, blurRadius: 4),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          'lib/assets/images/logout.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.exit_to_app, size: 32),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
               ),
             ),
           ],
@@ -111,43 +93,47 @@ class MenuScreen extends StatelessWidget {
   }
 }
 
-class _MenuButton extends StatelessWidget {
+class _MenuCardButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
   final double height;
 
-  const _MenuButton({
+  const _MenuCardButton({
     required this.label,
     required this.icon,
     required this.onTap,
-    this.height = 84,
+    this.height = 48,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: SizedBox(
-        width: double.infinity,
-        height: height,
-        child: ElevatedButton(
-          onPressed: onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 2.0,
+        margin: const EdgeInsets.only(bottom: 12.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
+        color: Colors.white,
+        child: SizedBox(
+          height: height,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 36, color: Colors.black),
+                const SizedBox(width: 18),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
             ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 36),
-              const SizedBox(width: 12),
-              Text(label, style: const TextStyle(fontSize: 20)),
-            ],
           ),
         ),
       ),
