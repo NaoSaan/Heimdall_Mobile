@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() {
-      _isLoading = true;
+      _isLoading = true; // Bloquea inputs y botón
     });
 
     try {
@@ -68,7 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
           final aP = data['APaterno'];
           final aM = data['AMaterno'];
           final ciudadano = "$nombre $aP $aM";
-          Navigator.pushNamed(context, CondenasCiuScreen.routeName, arguments: ciudadano);
+          Navigator.pushNamed(
+            context,
+            CondenasCiuScreen.routeName,
+            arguments: ciudadano,
+          );
         } else {
           final messageAPI = data['message'] ?? 'Error desconocido';
           ScaffoldMessenger.of(
@@ -82,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ).showSnackBar(SnackBar(content: Text('Error de conexión: $e')));
     } finally {
       setState(() {
-        _isLoading = false;
+        _isLoading = false; // Habilita inputs y botón nuevamente
       });
     }
   }
@@ -103,6 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 60,
               child: TextField(
                 controller: _user,
+                enabled: !_isLoading, // Bloquea cuando _isLoading es true
                 decoration: InputDecoration(
                   labelText: 'Usuario',
                   border: OutlineInputBorder(
@@ -110,7 +115,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
-                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
                   ),
                 ),
               ),
@@ -124,6 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 60,
               child: TextField(
                 controller: _pwd,
+                enabled: !_isLoading, // Bloquea cuando _isLoading es true
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
                   labelText: 'Contraseña',
@@ -132,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
-                    borderSide: BorderSide(color: Colors.blue, width: 2),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -140,11 +146,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? Icons.visibility_off
                           : Icons.visibility,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+                    onPressed: _isLoading
+                        ? null // Deshabilita botón cuando está cargando
+                        : () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                   ),
                 ),
               ),
