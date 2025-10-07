@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../helpers/loadpageperview.dart';
 
 class CondenasScreen extends StatefulWidget {
   static const String routeName = '/condenas';
@@ -93,15 +94,23 @@ class _CondenasScreenState extends State<CondenasScreen> {
                             iconSize: 75.0,
                             color: Colors.black,
                             onPressed: () {
-                              Navigator.pushNamed(context, '/menu', arguments: agente);
+                               navigateWithLoading(
+                                context,
+                                '/menu',
+                                arguments: agente,
+                              );
                             },
                           ),
                           IconButton(
                             icon: const Icon(Icons.library_books_outlined),
                             iconSize: 75.0,
                             color: Colors.black,
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/informes', arguments: agente);
+                           onPressed: () {
+                              navigateWithLoading(
+                                context,
+                                '/informes',
+                                arguments: agente,
+                              );
                             },
                           ),
                         ],

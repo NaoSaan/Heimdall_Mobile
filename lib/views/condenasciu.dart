@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 
 class CondenasCiuScreen extends StatefulWidget {
   static const String routeName = '/condenasciu';
@@ -14,65 +15,99 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
     // Se recibe el argumento 'ciudadano' para mostrarlo en pantalla.
     final ciudadano = ModalRoute.of(context)!.settings.arguments as String;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFe7e7e7),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            children: [
-              // --- Widget para mostrar el nombre del agente ---
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      ciudadano,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async {
+        // Mostrar diálogo de confirmación al presionar botón "Atrás"
+        AwesomeDialog(
+          context: context,
+          dialogType: DialogType.warning,
+          animType: AnimType.bottomSlide,
+          title: '¿Cerrar sesión?',
+          desc: '¿Estás seguro de terminar la sesión?',
+          btnCancelText: 'Cancelar',
+          btnOkText: 'Si',
+          btnCancelOnPress: () {},
+          btnOkOnPress: () {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/login',
+              (route) => false,
+            );
+          },
+        ).show();
+
+        return false; // Evita que la pantalla se cierre automáticamente
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFe7e7e7),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: Column(
+              children: [
+                // --- Widget para mostrar el nombre del agente ---
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        ciudadano,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-              // --- Lista de Tarjetas ---
-              Expanded(
-                child: ListView.builder(
-                  itemCount: 6,
-                  itemBuilder: (context, index) {
-                    return const TransactionCard();
-                  },
+                // --- Lista de Tarjetas ---
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: 6,
+                    itemBuilder: (context, index) {
+                      return const TransactionCard();
+                    },
+                  ),
                 ),
-              ),
 
-              // --- Botones Inferiores (reincorporados) ---
-              // Se reemplaza el icono 'output' por la fila de botones original.
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Botón de Inicio (Home)
-                    IconButton(
-                      icon: const Icon(Icons.output),
-                      iconSize: 48.0,
-                      color: Colors.black54,
-                      onPressed: () {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/login',
-                          (Route<dynamic> route) =>
-                              false, // elimina todas las rutas anteriores
-                        );
-                      },
-                    ),
-                  ],
+                // --- Botones Inferiores ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Botón de logout
+                      IconButton(
+                        icon: const Icon(Icons.output),
+                        iconSize: 48.0,
+                        color: Colors.black54,
+                        onPressed: () {
+                          AwesomeDialog(
+                            context: context,
+                            dialogType: DialogType.warning,
+                            animType: AnimType.bottomSlide,
+                            title: '¿Cerrar sesión?',
+                            desc: '¿Estás seguro de terminar la sesión?',
+                            btnCancelText: 'Cancelar',
+                            btnOkText: 'Si',
+                            btnCancelOnPress: () {},
+                            btnOkOnPress: () {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/login',
+                                (route) => false,
+                              );
+                            },
+                          ).show();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -80,7 +115,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
   }
 }
 
-// --- Widget para la Tarjeta de Transacción (diseño de la imagen) ---
+// --- Widget para la Tarjeta de Transacción ---
 class TransactionCard extends StatelessWidget {
   const TransactionCard({super.key});
 

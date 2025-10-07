@@ -4,7 +4,9 @@ import 'login.dart';
 
 class Loadpage extends StatefulWidget {
   static const String routeName = '/loadpage';
-  const Loadpage({Key? key}) : super(key: key);
+  final bool intermediate; // <- nuevo parámetro
+
+  const Loadpage({Key? key, this.intermediate = false}) : super(key: key);
 
   @override
   _LoadpageState createState() => _LoadpageState();
@@ -29,22 +31,21 @@ class _LoadpageState extends State<Loadpage> with TickerProviderStateMixin {
     );
 
     // CAMBIO: Se usa una curva más agresiva que empieza rápido (efecto "salto")
-    _exitOffsetAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(0.0, 3.0),
-    ).animate(CurvedAnimation(
-      parent: _exitController,
-      curve: const Cubic(0.55, 0.055, 0.675, 0.19), // Curva "EaseInBack"
-    ));
+    _exitOffsetAnimation =
+        Tween<Offset>(begin: Offset.zero, end: const Offset(0.0, 3.0)).animate(
+          CurvedAnimation(
+            parent: _exitController,
+            curve: const Cubic(0.55, 0.055, 0.675, 0.19), // Curva "EaseInBack"
+          ),
+        );
 
-    _exitFadeAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _exitController,
-      // El desvanecimiento ocurre en el 80% inicial de la animación
-      curve: const Interval(0.0, 0.8, curve: Curves.easeOut),
-    ));
+    _exitFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _exitController,
+        // El desvanecimiento ocurre en el 80% inicial de la animación
+        curve: const Interval(0.0, 0.8, curve: Curves.easeOut),
+      ),
+    );
 
     // --- Controlador para el MOVIMIENTO SUTIL (flotación) ---
     _bounceController = AnimationController(
@@ -52,13 +53,16 @@ class _LoadpageState extends State<Loadpage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
 
-    _bounceAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(0.0, -0.05),
-    ).animate(CurvedAnimation(
-      parent: _bounceController,
-      curve: Curves.easeInOutSine,
-    ));
+    _bounceAnimation =
+        Tween<Offset>(
+          begin: Offset.zero,
+          end: const Offset(0.0, -0.05),
+        ).animate(
+          CurvedAnimation(
+            parent: _bounceController,
+            curve: Curves.easeInOutSine,
+          ),
+        );
 
     _startTransition();
   }
@@ -69,23 +73,27 @@ class _LoadpageState extends State<Loadpage> with TickerProviderStateMixin {
     _bounceController.stop();
     _exitController.forward();
 
-    // Retraso más corto para una transición más enlazada
-    await Future.delayed(const Duration(milliseconds: 150));
+    await Future.delayed(const Duration(milliseconds: 100));
 
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
-          transitionDuration: const Duration(milliseconds: 500),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
-        ),
-      );
+      if (widget.intermediate) {
+        // Solo cierra la pantalla de carga si viene desde un botón
+        Navigator.pop(context);
+      } else {
+        // Si es la carga inicial, ve al login
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LoginScreen(),
+            transitionDuration: const Duration(milliseconds: 75),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+          ),
+        );
+      }
     }
   }
 
@@ -108,7 +116,8 @@ class _LoadpageState extends State<Loadpage> with TickerProviderStateMixin {
           builder: (context, child) {
             // Combina el offset de ambas animaciones en uno solo.
             // Esto asegura que la salida comience desde la posición exacta donde se detuvo la flotación.
-            final totalOffset = _bounceAnimation.value + _exitOffsetAnimation.value;
+            final totalOffset =
+                _bounceAnimation.value + _exitOffsetAnimation.value;
 
             // Se usa FractionalTranslation que es como SlideTransition pero con control directo
             return FractionalTranslation(

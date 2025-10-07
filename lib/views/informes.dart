@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../helpers/loadpageperview.dart';
 
 class InformesScreen extends StatefulWidget {
   static const String routeName = '/informes';
@@ -50,7 +51,9 @@ class _InformesScreenState extends State<InformesScreen> {
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 15.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15.0,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30.0),
                           borderSide: BorderSide.none,
@@ -91,7 +94,7 @@ class _InformesScreenState extends State<InformesScreen> {
                             iconSize: 75.0,
                             color: Colors.black,
                             onPressed: () {
-                              Navigator.pushNamed(
+                              navigateWithLoading(
                                 context,
                                 '/menu',
                                 arguments: agente,
@@ -103,7 +106,7 @@ class _InformesScreenState extends State<InformesScreen> {
                             iconSize: 75.0,
                             color: Colors.black,
                             onPressed: () {
-                              Navigator.pushNamed(
+                              navigateWithLoading(
                                 context,
                                 '/condenas',
                                 arguments: agente,
