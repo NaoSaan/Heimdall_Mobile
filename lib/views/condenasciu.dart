@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:awesome_dialog/awesome_dialog.dart'; // Librería para diálogos personalizados
+import 'package:http/http.dart' as http; // Librería para llamadas HTTP
+import 'dart:convert'; // Para codificar/decodificar JSON
 
+// --- Pantalla principal que muestra las condenas de un ciudadano ---
 class CondenasCiuScreen extends StatefulWidget {
-  static const String routeName = '/condenasciu';
+  static const String routeName = '/condenasciu'; // Ruta para navegación
   const CondenasCiuScreen({super.key});
 
   @override
@@ -10,14 +13,45 @@ class CondenasCiuScreen extends StatefulWidget {
 }
 
 class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
+  late Future<List<dynamic>> _futureCondenas; // Variable para almacenar la respuesta futura de la API
+
+  // --- Función para obtener condenas desde la API usando POST ---
+  Future<List<dynamic>> fetchCondenas(String curp) async {
+    final response = await http.post(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/allf'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'curp': curp}), // Se envía el CURP en el cuerpo de la solicitud
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body); // Decodificar la respuesta JSON
+      return data;
+    } else {
+      // Manejo de errores en caso de fallo de la API
+      throw Exception('Error al cargar las condenas');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Obtener los argumentos enviados a esta pantalla (curp, ciudadano)
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final curp = args['curp'];
+    _futureCondenas = fetchCondenas(curp); // Inicializar el Future con la llamada a la API
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Se recibe el argumento 'ciudadano' para mostrarlo en pantalla.
-    final ciudadano = ModalRoute.of(context)!.settings.arguments as String;
+    final args =
+    ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final ciudadano = args['ciudadano']; // Nombre del ciudadano
+    final curp = args['curp']; // CURP del ciudadano
 
     return WillPopScope(
       onWillPop: () async {
-        // Mostrar diálogo de confirmación al presionar botón "Atrás"
+        // Intercepta el botón "atrás" para mostrar un diálogo de confirmación de cierre de sesión
         AwesomeDialog(
           context: context,
           dialogType: DialogType.warning,
@@ -28,6 +62,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
           btnOkText: 'Si',
           btnCancelOnPress: () {},
           btnOkOnPress: () {
+            // Navega a la pantalla de login y elimina la pila de navegación
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/login',
@@ -35,8 +70,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
             );
           },
         ).show();
-
-        return false; // Evita que la pantalla se cierre automáticamente
+        return false; // Prevenir la acción por defecto de volver atrás
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFe7e7e7),
@@ -45,7 +79,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
             child: Column(
               children: [
-                // --- Widget para mostrar el nombre del agente ---
+                // --- Nombre del ciudadano en la parte superior ---
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Row(
@@ -62,28 +96,50 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                   ),
                 ),
 
-                // --- Lista de Tarjetas ---
+                // --- Lista de condenas obtenidas de la API ---
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: 6,
-                    itemBuilder: (context, index) {
-                      return const TransactionCard();
+                  child: FutureBuilder<List<dynamic>>(
+                    future: _futureCondenas,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        // Mostrar indicador de carga mientras se obtiene la información
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        // Mostrar error en caso de fallo de la API
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        // Mensaje si no hay condenas
+                        return const Center(child: Text('No se encontraron condenas.'));
+                      }
+
+                      final condenas = snapshot.data!;
+                      return ListView.builder(
+                        itemCount: condenas.length,
+                        itemBuilder: (context, index) {
+                          final c = condenas[index];
+                          // Crear una tarjeta para cada condena
+                          return TransactionCard(
+                            asunto: c['Tipo'],
+                            importe: c['Importe'],
+                          );
+                        },
+                      );
                     },
                   ),
                 ),
 
-                // --- Botones Inferiores ---
+                // --- Botón para cerrar sesión ---
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      // Botón de logout
                       IconButton(
                         icon: const Icon(Icons.output),
                         iconSize: 48.0,
                         color: Colors.black54,
                         onPressed: () {
+                          // Mostrar diálogo de confirmación de cierre de sesión
                           AwesomeDialog(
                             context: context,
                             dialogType: DialogType.warning,
@@ -115,9 +171,16 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
   }
 }
 
-// --- Widget para la Tarjeta de Transacción ---
+// --- Widget independiente para mostrar cada condena en forma de tarjeta ---
 class TransactionCard extends StatelessWidget {
-  const TransactionCard({super.key});
+  final String asunto; // Tipo de condena
+  final String importe; // Importe de la condena
+
+  const TransactionCard({
+    super.key,
+    required this.asunto,
+    required this.importe,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -131,17 +194,18 @@ class TransactionCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Column(
+            // --- Información de la condena ---
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Asunto',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                  asunto,
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Importe',
-                  style: TextStyle(
+                  'Importe: $importe',
+                  style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black87,
                     fontWeight: FontWeight.w500,
@@ -149,6 +213,7 @@ class TransactionCard extends StatelessWidget {
                 ),
               ],
             ),
+            // --- Ícono de dólar al lado derecho ---
             Container(
               padding: const EdgeInsets.all(12.0),
               decoration: const BoxDecoration(

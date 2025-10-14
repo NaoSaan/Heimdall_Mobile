@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../helpers/loadpageperview.dart';
+import 'package:http/http.dart' as http; 
+import 'dart:convert'; 
 
 class CondenasScreen extends StatefulWidget {
   static const String routeName = '/condenas';
@@ -10,6 +12,31 @@ class CondenasScreen extends StatefulWidget {
 }
 
 class _CondenasScreenState extends State<CondenasScreen> {
+
+late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la respuesta futura de la API
+   Future<List<dynamic>> fetchCondenasAg() async {
+    final response = await http.get(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/allxc'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body); // Decodificar la respuesta JSON
+      return data;
+    } else {
+      // Manejo de errores en caso de fallo de la API
+      throw Exception('Error al cargar las condenas');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Obtener los argumentos enviados a esta pantalla (curp, ciudadano)
+    
+    _futureCondenasAg = fetchCondenasAg(); // Inicializar el Future con la llamada a la API
+  }
+
   @override
   Widget build(BuildContext context) {
     final agente = ModalRoute.of(context)!.settings.arguments as String;
@@ -68,16 +95,40 @@ class _CondenasScreenState extends State<CondenasScreen> {
                     const SizedBox(height: 20),
 
                     // --- Lista de Tarjetas ---
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: 7,
-                        itemBuilder: (context, index) {
-                          final ids = ["0001","0002","0003","0004","0005","0006","0007"];
-                          return InfoCard(
-                            id: ids[index],
-                            asunto: 'Asunto',
-                            curp: 'CURP-EJEMPLO',
-                            estatus: 'estatus',
+                   Expanded(
+                      child: FutureBuilder<List<dynamic>>(
+                        future: _futureCondenasAg,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          } else if (snapshot.hasError) {
+                            return Center(
+                              child: Text('Error: ${snapshot.error}'),
+                            );
+                          } else if (!snapshot.hasData ||
+                              snapshot.data!.isEmpty) {
+                            return const Center(
+                              child: Text('No se encontraron condenas.'),
+                            );
+                          }
+
+                          // Usamos directamente todas las condenas sin filtrar
+                          final condenas = snapshot.data!;
+
+                          return ListView.builder(
+                            itemCount: condenas.length,
+                            itemBuilder: (context, index) {
+                              final c = condenas[index];
+                              return InfoCard(
+                                id: c['ID_Condena'].toString(),
+                                asunto: c['Tipo'] ?? 'Sin tipo',
+                                curp: c['CURP'] ?? '---',
+                                estatus: "\$${c['Importe'] ?? '0'}",
+                              );
+                            },
                           );
                         },
                       ),
@@ -194,3 +245,6 @@ class InfoCard extends StatelessWidget {
     );
   }
 }
+
+
+                      
