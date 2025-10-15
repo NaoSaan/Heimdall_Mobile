@@ -13,21 +13,53 @@ class CondenasCiuScreen extends StatefulWidget {
 }
 
 class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
-  late Future<List<dynamic>> _futureCondenas; // Variable para almacenar la respuesta futura de la API
+  // Variable para almacenar la respuesta futura de la API
+  late Future<List<dynamic>> _futureCondenas;
+  late Future<List<dynamic>> _futureCondenasFil;
+  TextEditingController _searchController = TextEditingController();
 
   // --- Función para obtener condenas desde la API usando POST ---
   Future<List<dynamic>> fetchCondenas(String curp) async {
     final response = await http.post(
       Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/allf'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'curp': curp}), // Se envía el CURP en el cuerpo de la solicitud
+      body: jsonEncode({
+        'curp': curp,
+      }), // Se envía el CURP en el cuerpo de la solicitud
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body); // Decodificar la respuesta JSON
+      final List<dynamic> data = jsonDecode(
+        response.body,
+      ); // Decodificar la respuesta JSON
       return data;
     } else {
       // Manejo de errores en caso de fallo de la API
+      throw Exception('Error al cargar las condenas');
+    }
+  }
+
+  Future<List<dynamic>> fetchCondenasFi(String curp, String filtro) async {
+    final response = await http.post(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/mufi'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'curp': curp, 'filtro': filtro}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is List) {
+        // Si la respuesta es una lista, retornamos directamente
+        return data;
+      } else if (data is Map && data.containsKey('message')) {
+        // Si la respuesta es un objeto con mensaje, retornamos lista vacía
+        return [];
+      } else {
+        // Otro tipo inesperado
+        throw Exception('Formato de respuesta inesperado');
+      }
+    } else {
       throw Exception('Error al cargar las condenas');
     }
   }
@@ -39,15 +71,16 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final curp = args['curp'];
-    _futureCondenas = fetchCondenas(curp); // Inicializar el Future con la llamada a la API
+    _futureCondenas = fetchCondenas(
+      curp,
+    ); // Inicializar el Future con la llamada a la API
   }
 
   @override
   Widget build(BuildContext context) {
     final args =
-    ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final ciudadano = args['ciudadano']; // Nombre del ciudadano
-    final curp = args['curp']; // CURP del ciudadano
 
     return WillPopScope(
       onWillPop: () async {
@@ -76,7 +109,10 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
         backgroundColor: const Color(0xFFe7e7e7),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 16.0,
+            ),
             child: Column(
               children: [
                 // --- Nombre del ciudadano en la parte superior ---
@@ -95,7 +131,47 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                     ],
                   ),
                 ),
+                TextField(
+                  controller: _searchController,
+                  onSubmitted: (value) async {
+                    final args =
+                        ModalRoute.of(context)!.settings.arguments
+                            as Map<String, dynamic>;
+                    final curp = args['curp'];
 
+                    if (value.isEmpty) {
+                      // Si no hay texto, mostrar todas las condenas
+                      setState(() {
+                        _futureCondenas = fetchCondenas(curp);
+                      });
+                    } else {
+                      // Si hay texto, buscar filtrado
+                      setState(() {
+                        _futureCondenas = fetchCondenasFi(curp, value);
+                      });
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Buscar...',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 15.0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
                 // --- Lista de condenas obtenidas de la API ---
                 Expanded(
                   child: FutureBuilder<List<dynamic>>(
@@ -109,7 +185,9 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                         return Center(child: Text('Error: ${snapshot.error}'));
                       } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         // Mensaje si no hay condenas
-                        return const Center(child: Text('No se encontraron condenas.'));
+                        return const Center(
+                          child: Text('No se encontraron condenas.'),
+                        );
                       }
 
                       final condenas = snapshot.data!;

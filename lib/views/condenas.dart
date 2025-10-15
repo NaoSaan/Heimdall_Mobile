@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../helpers/loadpageperview.dart';
-import 'package:http/http.dart' as http; 
-import 'dart:convert'; 
+import 'package:http/http.dart' as http; // Librería para llamadas HTTP
+import 'dart:convert'; // Para codificar/decodificar JSON
 
 class CondenasScreen extends StatefulWidget {
   static const String routeName = '/condenas';
@@ -12,16 +12,45 @@ class CondenasScreen extends StatefulWidget {
 }
 
 class _CondenasScreenState extends State<CondenasScreen> {
+  TextEditingController _searchController = TextEditingController();
+  late Future<List<dynamic>> _futureCondenasAg;
+  // Variable para almacenar la respuesta futura de la API
+  Future<List<dynamic>> fetchCondenasAgFil(String filtro) async {
+    final response = await http.get(
+      Uri.parse(
+        'https://heimdall-qxbv.onrender.com/api/condenas/axcf/?by=${filtro}',
+      ),
+      headers: {'Content-Type': 'application/json'},
+    );
 
-late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la respuesta futura de la API
-   Future<List<dynamic>> fetchCondenasAg() async {
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is List) {
+        // Si la respuesta es una lista, retornamos directamente
+        return data;
+      } else if (data is Map && data.containsKey('message')) {
+        // Si la respuesta es un objeto con mensaje, retornamos lista vacía
+        return [];
+      } else {
+        // Otro tipo inesperado
+        throw Exception('Formato de respuesta inesperado');
+      }
+    } else {
+      throw Exception('Error al cargar las condenas');
+    }
+  }
+
+  Future<List<dynamic>> fetchCondenasAg() async {
     final response = await http.get(
       Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/allxc'),
       headers: {'Content-Type': 'application/json'},
     );
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body); // Decodificar la respuesta JSON
+      final List<dynamic> data = jsonDecode(
+        response.body,
+      ); // Decodificar la respuesta JSON
       return data;
     } else {
       // Manejo de errores en caso de fallo de la API
@@ -33,8 +62,7 @@ late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la resp
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Obtener los argumentos enviados a esta pantalla (curp, ciudadano)
-    
-    _futureCondenasAg = fetchCondenasAg(); // Inicializar el Future con la llamada a la API
+    _futureCondenasAg = fetchCondenasAg();
   }
 
   @override
@@ -72,12 +100,26 @@ late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la resp
                     const SizedBox(height: 20),
                     // --- Barra de Búsqueda ---
                     TextField(
+                      controller: _searchController,
+                      onSubmitted: (value) {
+                        if (value.isEmpty) {
+                          setState(() {
+                            _futureCondenasAg = fetchCondenasAg();
+                          });
+                        } else {
+                          setState(() {
+                            _futureCondenasAg = fetchCondenasAgFil(value);
+                          });
+                        }
+                      },
                       decoration: InputDecoration(
                         hintText: 'Buscar...',
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 15.0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15.0,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30.0),
                           borderSide: BorderSide.none,
@@ -95,7 +137,7 @@ late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la resp
                     const SizedBox(height: 20),
 
                     // --- Lista de Tarjetas ---
-                   Expanded(
+                    Expanded(
                       child: FutureBuilder<List<dynamic>>(
                         future: _futureCondenasAg,
                         builder: (context, snapshot) {
@@ -145,7 +187,7 @@ late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la resp
                             iconSize: 75.0,
                             color: Colors.black,
                             onPressed: () {
-                               navigateWithLoading(
+                              navigateWithLoading(
                                 context,
                                 '/menu',
                                 arguments: agente,
@@ -156,7 +198,7 @@ late Future<List<dynamic>> _futureCondenasAg; // Variable para almacenar la resp
                             icon: const Icon(Icons.library_books_outlined),
                             iconSize: 75.0,
                             color: Colors.black,
-                           onPressed: () {
+                            onPressed: () {
                               navigateWithLoading(
                                 context,
                                 '/informes',
@@ -218,26 +260,17 @@ class InfoCard extends StatelessWidget {
               children: [
                 Text(
                   asunto,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
                 ),
                 Text(
                   curp,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.black),
                 ),
               ],
             ),
             Text(
               estatus,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black,
-              ),
+              style: const TextStyle(fontSize: 16, color: Colors.black),
             ),
           ],
         ),
@@ -245,6 +278,3 @@ class InfoCard extends StatelessWidget {
     );
   }
 }
-
-
-                      
