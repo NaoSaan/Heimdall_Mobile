@@ -48,11 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
           final aP = agenteData['APaterno'];
           final aM = agenteData['AMaterno'];
           final agente = "$nombre $aP $aM";
-          final n_placa = agenteData['N_Placa'];
           Navigator.pushNamed(
-            context, 
-            MenuScreen.routeName, 
-            arguments: agente);
+            context,
+            MenuScreen.routeName,
+            arguments: agente,
+          );
         } else {
           final messageAPI = data['message'] ?? 'Error desconocido';
           ScaffoldMessenger.of(

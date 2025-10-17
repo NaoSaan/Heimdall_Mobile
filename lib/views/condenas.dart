@@ -243,34 +243,73 @@ class InfoCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 18.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              id,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.black,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            // ID con icono de condena
+            Row(
               children: [
-                Text(
-                  asunto,
-                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                Icon(
+                  Icons.gavel,
+                  color: Colors.red,
+                  size: 24.0,
                 ),
-                Text(
-                  curp,
-                  style: const TextStyle(fontSize: 14, color: Colors.black),
-                ),
+                const SizedBox(width: 8),
+                // Mostrar ID si es necesario, de lo contrario puedes omitirlo
+                // Text(id), // Descomenta si quieres mostrar el ID
               ],
             ),
-            Text(
-              estatus,
-              style: const TextStyle(fontSize: 16, color: Colors.black),
+            
+            // Información central - Usar Expanded para evitar overflow
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      asunto,
+                      style: const TextStyle(
+                        fontSize: 16, 
+                        color: Colors.black,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2, // Limitar a 2 líneas
+                      overflow: TextOverflow.ellipsis, // Puntos suspensivos si es muy largo
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      curp,
+                      style: const TextStyle(
+                        fontSize: 14, 
+                        color: Colors.black54,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Estatus - Aseguramos que no se desborde
+            Flexible(
+              child: Text(
+                estatus,
+                style: const TextStyle(
+                  fontSize: 16, 
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
