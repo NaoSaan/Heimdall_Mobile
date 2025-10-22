@@ -58,6 +58,28 @@ class _CondenasScreenState extends State<CondenasScreen> {
     }
   }
 
+  Future<Map<String, dynamic>> fetchDetalleCondena(String id) async {
+    final response = await http.post(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/byId'),
+      body: jsonEncode({'id': id}),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is List && data.isNotEmpty) {
+        return data.first; // 👈 Toma el primer elemento
+      } else if (data is Map<String, dynamic>) {
+        return data;
+      } else {
+        throw Exception('Formato inesperado de respuesta');
+      }
+    } else {
+      throw Exception('Error al obtener detalles de la condena');
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -169,6 +191,183 @@ class _CondenasScreenState extends State<CondenasScreen> {
                                 asunto: c['Tipo'] ?? 'Sin tipo',
                                 curp: c['CURP'] ?? '---',
                                 estatus: "\$${c['Importe'] ?? '0'}",
+                                onTap: () async {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible:
+                                        false, // evita cerrar hasta que cargue
+                                    builder: (context) {
+                                      return FutureBuilder<
+                                        Map<String, dynamic>
+                                      >(
+                                        future: fetchDetalleCondena(
+                                          c['ID_Condena'].toString(),
+                                        ),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const AlertDialog(
+                                              title: Text('Cargando...'),
+                                              content: SizedBox(
+                                                height: 120,
+                                                child: Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                ),
+                                              ),
+                                            );
+                                          } else if (snapshot.hasError) {
+                                            return AlertDialog(
+                                              title: const Text('Error'),
+                                              content: Text(
+                                                'Error al cargar detalle: ${snapshot.error}',
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('Cerrar'),
+                                                ),
+                                              ],
+                                            );
+                                          } else {
+                                            final detalle = snapshot.data!;
+                                            return AlertDialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              title: const Text(
+                                                'Detalles de la condena',
+                                              ),
+                                              content: SingleChildScrollView(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    TextField(
+                                                      controller:
+                                                          TextEditingController(
+                                                            text:
+                                                                detalle['Tipo'] ??
+                                                                '---',
+                                                          ),
+                                                      readOnly: true,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText: 'Tipo',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    TextField(
+                                                      controller:
+                                                          TextEditingController(
+                                                            text:
+                                                                "${detalle['Nombre'] + ' ' + detalle['APaterno'] + ' ' + detalle['AMaterno'] ?? '---'}",
+                                                          ),
+                                                      readOnly: true,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText: 'Nombre',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    TextField(
+                                                      controller:
+                                                          TextEditingController(
+                                                            text:
+                                                                detalle['CURP'] ??
+                                                                '---',
+                                                          ),
+                                                      readOnly: true,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText: 'CURP',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    TextField(
+                                                      controller:
+                                                          TextEditingController(
+                                                            text:
+                                                                detalle['Importe'] ??
+                                                                '---',
+                                                          ),
+                                                      readOnly: true,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText:
+                                                                'Importe',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    TextField(
+                                                      controller: TextEditingController(
+                                                        text:
+                                                            detalle['Estatus'] ==
+                                                                'P'
+                                                            ? 'Pendiente'
+                                                            : detalle['Estatus'] ==
+                                                                  'A'
+                                                            ? 'Acreditada'
+                                                            : '---',
+                                                      ),
+                                                      readOnly: true,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                            labelText:
+                                                                'Estatus',
+                                                            border:
+                                                                OutlineInputBorder(),
+                                                          ),
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    TextField(
+                                                      controller:
+                                                          TextEditingController(
+                                                            text:
+                                                                detalle['Matricula'] ??
+                                                                '---',
+                                                          ),
+                                                      readOnly: true,
+                                                      decoration: const InputDecoration(
+                                                        labelText:
+                                                            'Matricula de vehiculo',
+                                                        border:
+                                                            OutlineInputBorder(),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              actions: [
+                                                Center(
+                                                  child: TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      size: 40,
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }
+                                        },
+                                      );
+                                    },
+                                  );
+                                },
                               );
                             },
                           );
@@ -226,6 +425,7 @@ class InfoCard extends StatelessWidget {
   final String asunto;
   final String curp;
   final String estatus;
+  final VoidCallback onTap;
 
   const InfoCard({
     super.key,
@@ -233,85 +433,50 @@ class InfoCard extends StatelessWidget {
     required this.asunto,
     required this.curp,
     required this.estatus,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2.0,
-      margin: const EdgeInsets.only(bottom: 12.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // ID con icono de condena
-            Row(
-              children: [
-                Icon(
-                  Icons.gavel,
-                  color: Colors.red,
-                  size: 24.0,
-                ),
-                const SizedBox(width: 8),
-                // Mostrar ID si es necesario, de lo contrario puedes omitirlo
-                // Text(id), // Descomenta si quieres mostrar el ID
-              ],
-            ),
-            
-            // Información central - Usar Expanded para evitar overflow
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 2.0,
+        margin: const EdgeInsets.only(bottom: 12.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Icon(Icons.gavel, color: Colors.red, size: 24.0),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       asunto,
                       style: const TextStyle(
-                        fontSize: 16, 
-                        color: Colors.black,
+                        fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2, // Limitar a 2 líneas
-                      overflow: TextOverflow.ellipsis, // Puntos suspensivos si es muy largo
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      curp,
-                      style: const TextStyle(
-                        fontSize: 14, 
-                        color: Colors.black54,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(curp, style: const TextStyle(color: Colors.black54)),
                   ],
                 ),
               ),
-            ),
-            
-            // Estatus - Aseguramos que no se desborde
-            Flexible(
-              child: Text(
+              Text(
                 estatus,
                 style: const TextStyle(
-                  fontSize: 16, 
-                  color: Colors.black,
                   fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

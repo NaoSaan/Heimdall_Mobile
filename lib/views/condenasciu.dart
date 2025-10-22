@@ -64,6 +64,28 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
     }
   }
 
+  Future<Map<String, dynamic>> fetchDetalleCondenaCiu(String id) async {
+    final response = await http.post(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/byIdCi'),
+      body: jsonEncode({'id': id}),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      if (data is List && data.isNotEmpty) {
+        return data.first;
+      } else if (data is Map<String, dynamic>) {
+        return data;
+      } else {
+        throw Exception('Formato inesperado de respuesta');
+      }
+    } else {
+      throw Exception('Error al obtener detalles de la condena');
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -197,8 +219,102 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                           final c = condenas[index];
                           // Crear una tarjeta para cada condena
                           return TransactionCard(
+                            id: c['ID_Condena'].toString(),
                             asunto: c['Tipo'],
-                            importe: c['Importe'],
+                            importe: c['Importe'].toString(),
+                            onTap: () async {
+                              try {
+                                final detalle = await fetchDetalleCondenaCiu(
+                                  c['ID_Condena'].toString(),
+                                );
+
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text('Detalle de Condena'),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          TextField(
+                                            controller: TextEditingController(
+                                              text: detalle['Tipo'] ?? '---',
+                                            ),
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Tipo',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          TextField(
+                                            controller: TextEditingController(
+                                              text: detalle['CURP'] ?? '---',
+                                            ),
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'CURP',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          TextField(
+                                            controller: TextEditingController(
+                                              text: detalle['Importe'] ?? '---',
+                                            ),
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Importe',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          TextField(
+                                            controller: TextEditingController(
+                                              text: detalle['Estatus'] == 'P'
+                                                  ? 'Pendiente'
+                                                  : detalle['Estatus'] == 'A'
+                                                  ? 'Acreditada'
+                                                  : '---',
+                                            ),
+                                            readOnly: true,
+                                            decoration: const InputDecoration(
+                                              labelText: 'Estatus',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      actionsAlignment:
+                                          MainAxisAlignment.center,
+                                      actions: [
+                                        Center(
+                                          child: TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Icon(
+                                              Icons.close,
+                                              size: 40,
+                                              color: Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              } catch (e) {
+                                AwesomeDialog(
+                                  context: context,
+                                  dialogType: DialogType.error,
+                                  title: 'Error',
+                                  desc: 'Error al cargar detalle: $e',
+                                  btnOkOnPress: () {},
+                                ).show();
+                              }
+                            },
                           );
                         },
                       );
@@ -251,63 +367,70 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
 
 // --- Widget independiente para mostrar cada condena en forma de tarjeta ---
 class TransactionCard extends StatelessWidget {
-  final String asunto; // Tipo de condena
-  final String importe; // Importe de la condena
+  final String id;
+  final String asunto;
+  final String importe;
+  final VoidCallback onTap;
 
   const TransactionCard({
     super.key,
+    required this.id,
     required this.asunto,
     required this.importe,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // --- Información de la condena ---
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  asunto,
-                  style: const TextStyle(fontSize: 16, color: Colors.black54),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        elevation: 0,
+        margin: const EdgeInsets.only(bottom: 12.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30.0),
+        ),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    asunto,
+                    style: const TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Importe: $importe',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(12.0),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFb2ffc8),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Importe: $importe',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
+                child: const Text(
+                  '\$',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            // --- Ícono de dólar al lado derecho ---
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: const BoxDecoration(
-                color: Color(0xFFb2ffc8),
-                shape: BoxShape.circle,
               ),
-              child: const Text(
-                '\$',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
