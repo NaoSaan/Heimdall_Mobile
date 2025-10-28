@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import 'loadpage.dart';
+import '../services/sessionstripeflag.dart'; 
 
 class SecondPlaneHandler extends StatefulWidget {
   final Widget child;
@@ -33,8 +34,8 @@ class _SecondPlaneHandlerState extends State<SecondPlaneHandler> with WidgetsBin
     } else if (state == AppLifecycleState.resumed) {
       if (_pausedTime != null) {
         final difference = DateTime.now().difference(_pausedTime!).inSeconds;
-        if (difference > 10) {
-          // Usar navigatorKey para reiniciar la app
+
+        if (difference > 10 && !SessionFlags.isStripePaymentInProgress) {
           navigatorKey.currentState?.pushNamedAndRemoveUntil(
             Loadpage.routeName,
             (route) => false,

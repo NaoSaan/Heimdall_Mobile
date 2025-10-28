@@ -6,13 +6,22 @@ import 'views/informes.dart';
 import 'views/menu.dart';
 import 'views/condenasciu.dart';
 import 'views/segundoplano.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:heimdall_flutter/secret/stripe_key.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+    // Inicializa Stripe con tu clave pública
+  Stripe.publishableKey = publishableKey; // clave pública
+  await Stripe.instance.applySettings(); // configuración de Stripe
   runApp(
-    SecondPlaneHandler(
-      child: const MyApp(),
+     ProviderScope( // para que funcione el pago con Riverpod
+      child: SecondPlaneHandler(
+        child: const MyApp(),
+      ),
     ),
   );
 }

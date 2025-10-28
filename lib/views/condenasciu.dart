@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:awesome_dialog/awesome_dialog.dart'; // Librería para diálogos personalizados
 import 'package:http/http.dart' as http; // Librería para llamadas HTTP
 import 'dart:convert'; // Para codificar/decodificar JSON
+import '../services/sessionstripeflag.dart'; //Bandera para guardar si el estado es en pago o no, evitando asi el regreso al login
+
+// para el proceso de pago
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:heimdall_flutter/services/stripe_service.dart';
 
 // --- Pantalla principal que muestra las condenas de un ciudadano ---
 class CondenasCiuScreen extends StatefulWidget {
@@ -103,6 +108,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final ciudadano = args['ciudadano']; // Nombre del ciudadano
+    final curp = args['curp']; // CURP del ciudadano
 
     return WillPopScope(
       onWillPop: () async {
@@ -153,6 +159,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                     ],
                   ),
                 ),
+                // --- Campo de búsqueda ---
                 TextField(
                   controller: _searchController,
                   onSubmitted: (value) async {
@@ -222,6 +229,7 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                             id: c['ID_Condena'].toString(),
                             asunto: c['Tipo'],
                             importe: c['Importe'].toString(),
+                            estatus: c['Estatus'] ?? '',
                             onTap: () async {
                               try {
                                 final detalle = await fetchDetalleCondenaCiu(
@@ -276,8 +284,8 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                                               text: detalle['Estatus'] == 'P'
                                                   ? 'Pendiente'
                                                   : detalle['Estatus'] == 'A'
-                                                  ? 'Acreditada'
-                                                  : '---',
+                                                      ? 'Acreditada'
+                                                      : '---',
                                             ),
                                             readOnly: true,
                                             decoration: const InputDecoration(
@@ -314,6 +322,12 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
                                   btnOkOnPress: () {},
                                 ).show();
                               }
+                            },
+                        
+                            onPaymentSuccess: () {
+                              setState(() {
+                                _futureCondenas = fetchCondenas(curp);
+                              });
                             },
                           );
                         },
@@ -365,23 +379,29 @@ class _CondenasCiuScreenState extends State<CondenasCiuScreen> {
   }
 }
 
-// --- Widget independiente para mostrar cada condena en forma de tarjeta ---
-class TransactionCard extends StatelessWidget {
+// --- Tarjeta que muestra la información de cada condena ---
+class TransactionCard extends ConsumerWidget {
   final String id;
   final String asunto;
   final String importe;
+  final String estatus;
   final VoidCallback onTap;
+  final VoidCallback? onPaymentSuccess; // Callback para recargar datos
 
   const TransactionCard({
     super.key,
     required this.id,
     required this.asunto,
     required this.importe,
+    required this.estatus,
     required this.onTap,
+    this.onPaymentSuccess,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stripeService = ref.read(stripePaymentProvider);
+
     return GestureDetector(
       onTap: onTap,
       child: Card(
@@ -396,6 +416,7 @@ class TransactionCard extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Información de la condena
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -414,21 +435,93 @@ class TransactionCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFb2ffc8),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '\$',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+
+              // Mostrar según el estatus
+              if (estatus == 'A')
+                // Ícono de completado
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFb2ffc8),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.check, color: Colors.black, size: 28),
+                  ),
+                )
+              else
+                // Botón de pago
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: Color.fromARGB(255, 255, 226, 163),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.attach_money,
+                      color: Colors.black,
+                      size: 28,
+                    ),
+                    onPressed: () async {
+                      try {
+                        SessionFlags.isStripePaymentInProgress = true; //Cambio de value de la bandera de estado de pago apra evitar el reinicio d eaplicación
+
+                        await stripeService.initPaymentSheet(
+                          amount: importe,
+                          currency: 'mxn',
+                          merchantName: 'Heimdall',
+                          description: '$id - $asunto',
+                        );
+
+                        await stripeService.presentPaymentSheet();
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Pago realizado con éxito"),
+                            ),
+                          );
+
+                          await http.put(
+                            Uri.parse(
+                              'https://heimdall-qxbv.onrender.com/api/condenas/updateByPay',
+                            ),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              'ID_Condena': id,
+                              'Estatus': 'A',
+                            }),
+                          );
+
+                          // Llamar de nuevo a fetchCondenas para recargar la lista
+                          if (onPaymentSuccess != null) {
+                            onPaymentSuccess!();
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          if (e.toString().contains('canceled') ||
+                              e.toString().contains('cancelled')) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Pago cancelado por el usuario"),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error en el pago: $e")),
+                            );
+                          }
+                        }
+                      } finally {
+                        SessionFlags.isStripePaymentInProgress = false;
+                      }
+                    },
                   ),
                 ),
-              ),
             ],
           ),
         ),
