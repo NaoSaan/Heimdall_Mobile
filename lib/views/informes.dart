@@ -165,13 +165,20 @@ class _InformesScreenState extends State<InformesScreen> {
                             itemCount: informes.length,
                             itemBuilder: (context, index) {
                               final c = informes[index];
-                              // Crear una tarjeta para cada condena
                               return InfoCard(
                                 folio: c['_id'],
-                                estatus: c['Estatus'] == 'A'
-                                    ? 'Activo'
-                                    : 'Inactivo',
+                                estatus: c['Estatus'] == 'A' ? 'Activo' : 'Inactivo',
                                 fecha: c['Fecha_Informe'],
+                                calle: c['Direccion']['Calle'] ?? 'No especificada',
+                                colonia: c['Direccion']['Colonia'] ?? 'No especificada',
+                                ciudad: c['Direccion']['Ciudad'] ?? 'No especificada',
+                                estado: c['Direccion']['Estado'] ?? 'No especificado',
+                                pais: c['Direccion']['Pais'] ?? 'No especificado',
+                                descripcion: c['Descripcion'] ?? 'Sin descripción',
+                                numeroExterior: c['Direccion']['Numero_Exterior'] ?? 'S/N',
+                                involucrados: c['Informe_Involucrados'] ?? [],
+                                agentes: c['Informe_Agentes'] ?? [],
+                                fotos: c['Foto'] ?? []
                               );
                             },
                           );
@@ -228,68 +235,165 @@ class InfoCard extends StatelessWidget {
   final String folio;
   final String estatus;
   final String fecha;
+  final String calle;
+  final String colonia;
+  final String ciudad;
+  final String estado;
+  final String pais;
+  final String descripcion;
+  final String numeroExterior;
+  final List<dynamic> involucrados;
+  final List<dynamic> agentes;
+  final List<dynamic> fotos;
 
   const InfoCard({
-    super.key,
+    Key? key,
     required this.folio,
     required this.estatus,
     required this.fecha,
-  });
+    required this.calle,
+    required this.colonia,
+    required this.ciudad,
+    required this.estado,
+    required this.pais,
+    required this.descripcion,
+    required this.numeroExterior,
+    required this.involucrados,
+    required this.agentes,
+    required this.fotos,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Determinar el icono basado en el estatus
     final IconData statusIcon = estatus == 'Activo'
-        ? Icons
-              .lock_open // Candado abierto para activo
-        : Icons.lock; // Candado cerrado para inactivo
+        ? Icons.lock_open
+        : Icons.lock;
 
-    // Color del icono basado en el estatus
     final Color statusColor = estatus == 'Activo'
-        ? Colors
-              .green // Verde para activo
-        : Colors.red; // Rojo para inactivo
+        ? Colors.green
+        : Colors.red;
 
-    return Card(
-      elevation: 2.0,
-      margin: const EdgeInsets.only(bottom: 16.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-        child: Row(
-          children: [
-            // Icono del estatus en la parte izquierda
-            Container(
-              margin: const EdgeInsets.only(right: 16.0),
-              child: Icon(statusIcon, color: statusColor, size: 32.0),
-            ),
-
-            // Información del informe - CENTRADA
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+    return GestureDetector(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              title: Column(
                 children: [
-                  Text(
-                    'Folio: $folio',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                  
+                  const Text(
+                    'Detalles del Informe',
+                    style: TextStyle(
                       fontSize: 18,
-                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Fecha: $fecha',
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                    textAlign: TextAlign.center,
-                  ),
+                  const Divider(thickness: 2),
                 ],
               ),
-            ),
-          ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Informe: $folio'),
+                    const SizedBox(height: 10),
+                    Text('Estatus: $estatus'),
+                    const SizedBox(height: 10),
+                    Text('Fecha: $fecha'),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Dirección:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('Calle: $calle'),
+                    Text('Número Exterior: $numeroExterior'),
+                    Text('Colonia: $colonia'),
+                    Text('Ciudad: $ciudad'),
+                    Text('Estado: $estado'),
+                    Text('País: $pais'),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Descripción:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(descripcion),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Involucrados:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    ...involucrados.map((inv) => Text('CURP: ${inv['CURP']}')),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Agentes:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    ...agentes.map((ag) => Text('Placa: ${ag['Num_Placa']}')),
+                    if (fotos.isNotEmpty) ...[  
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Fotos:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      ...fotos.map((foto) => Text('URL: ${foto['URL']}')),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+      child: Card(
+        elevation: 2.0,
+        margin: const EdgeInsets.only(bottom: 16.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+          child: Row(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(right: 16.0),
+                child: Icon(statusIcon, color: statusColor, size: 32.0),
+              ),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Folio: $folio',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Fecha: $fecha',
+                      style: const TextStyle(fontSize: 16, color: Colors.black54),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

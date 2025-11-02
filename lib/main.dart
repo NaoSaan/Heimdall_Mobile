@@ -12,19 +12,21 @@ import 'package:heimdall_flutter/secret/stripe_key.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-    // Inicializa Stripe con tu clave pública
-  Stripe.publishableKey = publishableKey; // clave pública
-  await Stripe.instance.applySettings(); // configuración de Stripe
+
+  Stripe.publishableKey = "pk_test_1234567890abcdefghijklmn";
+  await Stripe.instance.applySettings();
+
   runApp(
-     ProviderScope( // para que funcione el pago con Riverpod
+    ProviderScope(
       child: SecondPlaneHandler(
         child: const MyApp(),
       ),
     ),
   );
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
