@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../helpers/loadpageperview.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io'; // Necesario para manejar archivos
+import 'package:image_picker/image_picker.dart'; // Para seleccionar imágenes
 
 class InformesScreen extends StatefulWidget {
   static const String routeName = '/informes';
@@ -64,11 +66,197 @@ class _InformesScreenState extends State<InformesScreen> {
     _futureInformes = fetchInformes();
   }
 
+  List<XFile> _selectedImages = []; // Para almacenar las imágenes seleccionadas
+
+  void _showAddReportModal() {
+    // Controladores para los campos del formulario
+    final _fechaController = TextEditingController();
+    final _calleController = TextEditingController();
+    final _coloniaController = TextEditingController();
+    final _numeroExteriorController = TextEditingController();
+    final _ciudadController = TextEditingController();
+    final _estadoController = TextEditingController();
+    final _paisController = TextEditingController();
+    final _descripcionController = TextEditingController();
+    final _involucradosController = TextEditingController(); // Nuevo controlador
+    final _agentesController = TextEditingController(); // Nuevo controlador
+
+    _selectedImages.clear();
+    bool isActivo = true; // Estado inicial del candado (Activo)
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder( // Usamos StatefulBuilder para actualizar el estado del modal
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Agregar Nuevo Informe'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // --- Icono de Candado Interactivo ---
+                    GestureDetector(
+                      onTap: () {
+                        setState(() { // Cambia el estado al hacer clic
+                          isActivo = !isActivo;
+                        });
+                      },
+                      child: Icon(
+                        isActivo ? Icons.lock_open : Icons.lock,
+                        color: isActivo ? Colors.green : Colors.red,
+                        size: 40,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Fecha',
+                    ),
+                    TextField(controller: _fechaController, decoration: const InputDecoration(labelText: 'Selecciona una fe')),
+                    const Text(
+                      'Dirección',
+                      style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    // --- Campos del Formulario ---
+                    TextField(controller: _calleController, decoration: const InputDecoration(labelText: 'Calle')),
+                    TextField(controller: _coloniaController, decoration: const InputDecoration(labelText: 'Colonia')),
+                    TextField(controller: _numeroExteriorController, decoration: const InputDecoration(labelText: 'Número Exterior')),
+                    TextField(controller: _ciudadController, decoration: const InputDecoration(labelText: 'Ciudad')),
+                    TextField(controller: _estadoController, decoration: const InputDecoration(labelText: 'Estado')),
+                    TextField(controller: _paisController, decoration: const InputDecoration(labelText: 'País')),
+                    const SizedBox(height: 20),
+
+                    // --- Selección de Fotos ---
+                    Text('Fotos seleccionadas: ${_selectedImages.length}'),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final ImagePicker picker = ImagePicker();
+                        final List<XFile> images = await picker.pickMultiImage();
+                        setState(() {
+                          _selectedImages = images;
+                        });
+                      },
+                      child: const Text('Seleccionar Fotos'),
+                    ),
+                    
+                    TextField(controller: _descripcionController, decoration: const InputDecoration(labelText: 'Descripción')),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _addReport(
+                      calle: _calleController.text,
+                      colonia: _coloniaController.text,
+                      numeroExterior: _numeroExteriorController.text,
+                      ciudad: _ciudadController.text,
+                      estado: _estadoController.text,
+                      pais: _paisController.text,
+                      descripcion: _descripcionController.text,
+                      involucrados: _involucradosController.text, // Pasar valor
+                      agentes: _agentesController.text, // Pasar valor
+                      fotos: _selectedImages,
+                      isActivo: isActivo, // Pasa el estado del candado
+                    );
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _addReport({
+    required String calle,
+    required String colonia,
+    required String numeroExterior,
+    required String ciudad,
+    required String estado,
+    required String pais,
+    required String descripcion,
+    required String involucrados, // Nuevo parámetro
+    required String agentes, // Nuevo parámetro
+    required List<XFile> fotos,
+    required bool isActivo, // Recibe el estado del candado
+  }) async {
+    final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/informes/add');
+    var request = http.MultipartRequest('POST', url);
+
+    Map<String, dynamic> datos = {
+      'Estatus': isActivo ? 'A' : 'C', // Usa el estado del candado para el API
+      'Fecha_Informe': DateTime.now().toIso8601String(),
+      'Descripcion': descripcion,
+      'Direccion': {
+        'Calle': calle,
+        'Colonia': colonia,
+        'Numero_Exterior': numeroExterior,
+        'Ciudad': ciudad,
+        'Estado': estado,
+        'Pais': pais,
+      },
+      'Informe_Agentes': agentes.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      'Informe_Involucrados': involucrados.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+    };
+
+    // 2. Agrega los datos JSON como un campo 'datos'
+    request.fields['datos'] = jsonEncode(datos);
+
+    // 3. Agrega las fotos
+    for (var imageFile in fotos) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'fotos', // El nombre del campo en el backend
+          imageFile.path,
+        ),
+      );
+    }
+
+    try {
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 201) {
+        setState(() {
+          _futureInformes = fetchInformes();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Informe agregado con éxito')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al agregar informe: ${response.body}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error de conexión: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final agente = ModalRoute.of(context)!.settings.arguments as String;
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddReportModal,
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.blue,
+      ),
       resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xFFe7e7e7),
       body: SafeArea(
