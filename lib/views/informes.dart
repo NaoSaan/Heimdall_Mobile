@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io'; // Necesario para manejar archivos
 import 'package:image_picker/image_picker.dart'; // Para seleccionar imágenes
+import 'package:intl/intl.dart';
 
 class InformesScreen extends StatefulWidget {
   static const String routeName = '/informes';
@@ -115,7 +116,6 @@ class _InformesScreenState extends State<InformesScreen> {
 
   void _showAddReportModal() {
     // Controladores para los campos del formulario
-    final _fechaController = TextEditingController();
     final _calleController = TextEditingController();
     final _coloniaController = TextEditingController();
     final _numeroExteriorController = TextEditingController();
@@ -123,8 +123,11 @@ class _InformesScreenState extends State<InformesScreen> {
     final _estadoController = TextEditingController();
     final _paisController = TextEditingController();
     final _descripcionController = TextEditingController();
-    final _involucradosController = TextEditingController(); // Nuevo controlador
-    final _agentesController = TextEditingController(); // Nuevo controlador
+    final _involucradosController = TextEditingController();
+    final _agentesController = TextEditingController();
+    final _fechaController = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    ); // <-- This sets the current date
 
     _selectedImages.clear();
     bool isActivo = true; // Estado inicial del candado (Activo)
@@ -132,7 +135,8 @@ class _InformesScreenState extends State<InformesScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder( // Usamos StatefulBuilder para actualizar el estado del modal
+        return StatefulBuilder(
+          // Usamos StatefulBuilder para actualizar el estado del modal
           builder: (context, setState) {
             return AlertDialog(
               title: const Text('Agregar Nuevo Informe'),
@@ -143,7 +147,8 @@ class _InformesScreenState extends State<InformesScreen> {
                     // --- Icono de Candado Interactivo ---
                     GestureDetector(
                       onTap: () {
-                        setState(() { // Cambia el estado al hacer clic
+                        setState(() {
+                          // Cambia el estado al hacer clic
                           isActivo = !isActivo;
                         });
                       },
@@ -154,15 +159,28 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Fecha',
+                    const Text('Fecha'),
+                    TextFormField(
+                      controller: _fechaController,
+                      readOnly: true,
+                      onTap: () async {
+                        DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (pickedDate != null) {
+                          _fechaController.text =
+                              "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+                        }
+                      },
                     ),
-                    TextField(controller: _fechaController, decoration: const InputDecoration(labelText: 'Selecciona una fe')),
                     const Text(
                       'Dirección',
                       style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     // --- Campos del Formulario ---
@@ -181,12 +199,10 @@ class _InformesScreenState extends State<InformesScreen> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           onPressed: () {
-                            // Llamamos a la nueva ventana pasando los controladores
                             _showInvolucradosDialog(
                               context,
                               _involucradosController,
                               _agentesController,
-                              _descripcionController
                             );
                           },
                           child: const Text('Gestionar informe', style: TextStyle(color: Colors.white)),
@@ -230,28 +246,27 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // Nueva función para mostrar el diálogo de involucrados
+  // función para mostrar el diálogo de involucrados
+  
   void _showInvolucradosDialog(
       BuildContext context,
       TextEditingController involucradosCtrl,
-      TextEditingController agentesCtrl,
-      TextEditingController descripcionCtrl) {
+      TextEditingController agentesCtrl) { // <--- Ya no pedimos descripcionCtrl
     
     showDialog(
       context: context,
-      barrierDismissible: false, // Obliga a usar la X o Actualizar
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFFE0E0E0), // Fondo gris claro
+          backgroundColor: const Color(0xFFE0E0E0),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0), // Bordes muy redondeados (Phone shape)
+            borderRadius: BorderRadius.circular(30.0),
           ),
           child: Container(
-            height: 600, // Altura fija para simular la pantalla
+            height: 500, // <--- Ajusté un poco la altura ya que quitamos un elemento
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
-                // "Notch" decorativo superior
                 Container(
                   width: 60,
                   height: 6,
@@ -270,7 +285,8 @@ class _InformesScreenState extends State<InformesScreen> {
                         _buildEstiloTarjeta(
                           label: "Lista de Involucrados",
                           controller: involucradosCtrl,
-                          icon: Icons.add, // Icono + verde simulado
+                          maxLines: 6, // Aumenté líneas para ver mejor el detalle
+                          icon: Icons.add,
                           onIconPressed: () {
                             _showSeleccionarCiudadanos(context, involucradosCtrl);
                           },
@@ -281,21 +297,14 @@ class _InformesScreenState extends State<InformesScreen> {
                        _buildEstiloTarjeta(
                           label: "Lista de Agentes\nInvolucrados",
                           controller: agentesCtrl,
-                          maxLines: 4, // <--- MODIFICACIÓN: Caja más grande
-                          icon: Icons.add, // <--- MODIFICACIÓN: Icono '+' activado
+                          maxLines: 4,
+                          icon: Icons.add,
                           onIconPressed: () {
-                             // <--- MODIFICACIÓN: Abrir modal de agentes
                             _showSeleccionarAgentes(context, agentesCtrl);
                           },
                         ),
-                        const SizedBox(height: 15),
-
-                        // --- Tarjeta 3: Descripción ---
-                        _buildEstiloTarjeta(
-                          label: "Descripción",
-                          controller: descripcionCtrl,
-                          maxLines: 3,
-                        ),
+                        
+                        // --- SE ELIMINÓ LA TARJETA DE DESCRIPCIÓN AQUÍ ---
                       ],
                     ),
                   ),
@@ -303,13 +312,13 @@ class _InformesScreenState extends State<InformesScreen> {
 
                 const SizedBox(height: 10),
 
-                // --- Botón Actualizar (Azul claro) ---
+                // --- Botón Actualizar ---
                 SizedBox(
                   width: 200,
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4D7FF), // Azul pastel similar a la imagen
+                      backgroundColor: const Color(0xFFC4D7FF),
                       foregroundColor: Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -317,7 +326,8 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(context).pop(); // Cierra el diálogo guardando lo escrito en los controllers
+                      // Al hacer pop, los datos ya quedaron guardados en los controllers del padre
+                      Navigator.of(context).pop(); 
                     },
                     child: const Text(
                       "Actualizar",
@@ -418,8 +428,8 @@ class _InformesScreenState extends State<InformesScreen> {
                             subtitle: Text(curp),
                             trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                             onTap: () {
-                              // CORRECCIÓN 2: En lugar de agregar directo, abrimos el nuevo modal
-                              // Pasamos los datos del ciudadano y el controlador original
+                              
+                              Navigator.of(context).pop();
                               _showDetalleInvolucrado(context, c, controller);
                             },
                           );
@@ -447,14 +457,12 @@ class _InformesScreenState extends State<InformesScreen> {
 
   // --- Nuevo Modal: Detalle Involucrado (Diseño Image) ---
   void _showDetalleInvolucrado(BuildContext context, Map<String, dynamic> ciudadano, TextEditingController controllerParent) {
-    // Preparamos los datos limpios
     String nombre = ciudadano['Nombre'] ?? '';
     String paterno = ciudadano['Apellido_Paterno'] ?? '';
     String materno = ciudadano['Apellido_Materno'] ?? '';
     String nombreCompleto = "$nombre $paterno $materno".trim();
     String curp = ciudadano['CURP'] ?? 'Sin CURP';
 
-    // Lista temporal para almacenar los artículos que se agreguen en este modal
     List<String> articulosLocales = []; 
 
     showDialog(
@@ -609,7 +617,7 @@ class _InformesScreenState extends State<InformesScreen> {
 
                         // 4. Cerrar el modal
                         Navigator.of(context).pop(); 
-                        // Si se había cerrado el de selección antes, con este pop basta.
+                       
                       },
                         child: const Text(
                           "Agregar\nInvolucrados",
@@ -1074,7 +1082,9 @@ class _InformesScreenState extends State<InformesScreen> {
     required List<XFile> fotos,
     required bool isActivo, // Recibe el estado del candado
   }) async {
-    final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/informes/add');
+    final url = Uri.parse(
+      'https://heimdall-qxbv.onrender.com/api/informes/add',
+    );
     var request = http.MultipartRequest('POST', url);
 
     Map<String, dynamic> datos = {
@@ -1089,8 +1099,12 @@ class _InformesScreenState extends State<InformesScreen> {
         'Estado': estado,
         'Pais': pais,
       },
-      'Informe_Agentes': agentes.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
-      'Informe_Involucrados': involucrados.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+      'Informe_Agentes': agentes.isNotEmpty
+          ? [agentes]
+          : [],
+      'Informe_Involucrados': involucrados.isNotEmpty
+          ? [involucrados]
+          : [],
     };
 
     // 2. Agrega los datos JSON como un campo 'datos'
@@ -1123,9 +1137,9 @@ class _InformesScreenState extends State<InformesScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error de conexión: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error de conexión: $e')));
     }
   }
 
@@ -1185,6 +1199,21 @@ class _InformesScreenState extends State<InformesScreen> {
                       decoration: InputDecoration(
                         hintText: 'Buscar...',
                         prefixIcon: const Icon(Icons.search),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.search),
+                          onPressed: () {
+                            final value = _searchController.text.trim();
+                            if (value.isEmpty) {
+                              setState(() {
+                                _futureInformes = fetchInformes();
+                              });
+                            } else {
+                              setState(() {
+                                _futureInformes = fetchInformesFil(value);
+                              });
+                            }
+                          },
+                        ),
                         filled: true,
                         fillColor: Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
@@ -1237,18 +1266,31 @@ class _InformesScreenState extends State<InformesScreen> {
                               final c = informes[index];
                               return InfoCard(
                                 folio: c['_id'],
-                                estatus: c['Estatus'] == 'A' ? 'Activo' : 'Inactivo',
+                                estatus: c['Estatus'] == 'A'
+                                    ? 'Activo'
+                                    : 'Inactivo',
                                 fecha: c['Fecha_Informe'],
-                                calle: c['Direccion']['Calle'] ?? 'No especificada',
-                                colonia: c['Direccion']['Colonia'] ?? 'No especificada',
-                                ciudad: c['Direccion']['Ciudad'] ?? 'No especificada',
-                                estado: c['Direccion']['Estado'] ?? 'No especificado',
-                                pais: c['Direccion']['Pais'] ?? 'No especificado',
-                                descripcion: c['Descripcion'] ?? 'Sin descripción',
-                                numeroExterior: c['Direccion']['Numero_Exterior'] ?? 'S/N',
+                                calle:
+                                    c['Direccion']['Calle'] ??
+                                    'No especificada',
+                                colonia:
+                                    c['Direccion']['Colonia'] ??
+                                    'No especificada',
+                                ciudad:
+                                    c['Direccion']['Ciudad'] ??
+                                    'No especificada',
+                                estado:
+                                    c['Direccion']['Estado'] ??
+                                    'No especificado',
+                                pais:
+                                    c['Direccion']['Pais'] ?? 'No especificado',
+                                descripcion:
+                                    c['Descripcion'] ?? 'Sin descripción',
+                                numeroExterior:
+                                    c['Direccion']['Numero_Exterior'] ?? 'S/N',
                                 involucrados: c['Informe_Involucrados'] ?? [],
                                 agentes: c['Informe_Agentes'] ?? [],
-                                fotos: c['Foto'] ?? []
+                                fotos: c['Foto'] ?? [],
                               );
                             },
                           );
@@ -1339,9 +1381,7 @@ class InfoCard extends StatelessWidget {
         ? Icons.lock_open
         : Icons.lock;
 
-    final Color statusColor = estatus == 'Activo'
-        ? Colors.green
-        : Colors.red;
+    final Color statusColor = estatus == 'Activo' ? Colors.green : Colors.red;
 
     return GestureDetector(
       onTap: () {
@@ -1354,7 +1394,6 @@ class InfoCard extends StatelessWidget {
               ),
               title: Column(
                 children: [
-                  
                   const Text(
                     'Detalles del Informe',
                     style: TextStyle(
@@ -1405,7 +1444,7 @@ class InfoCard extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     ...agentes.map((ag) => Text('Placa: ${ag['Num_Placa']}')),
-                    if (fotos.isNotEmpty) ...[  
+                    if (fotos.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       const Text(
                         'Fotos:',
@@ -1429,7 +1468,9 @@ class InfoCard extends StatelessWidget {
       child: Card(
         elevation: 2.0,
         margin: const EdgeInsets.only(bottom: 16.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25.0)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25.0),
+        ),
         color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
@@ -1456,7 +1497,10 @@ class InfoCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       'Fecha: $fecha',
-                      style: const TextStyle(fontSize: 16, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
