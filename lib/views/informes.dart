@@ -19,6 +19,8 @@ class InformesScreen extends StatefulWidget {
 class _InformesScreenState extends State<InformesScreen> {
   TextEditingController _searchController = TextEditingController();
   late Future<List<dynamic>> _futureInformes;
+  List<Map<String, dynamic>> _involucradosSel = [];
+  List<Map<String, dynamic>> _agentesSel = [];
 
   Future<List<dynamic>> fetchInformesFil(String filtro) async {
     final response = await http.get(
@@ -77,7 +79,7 @@ class _InformesScreenState extends State<InformesScreen> {
     }
   }
 
-   // --- Función para obtener ciudadanos de la API ---
+  // --- Función para obtener ciudadanos de la API ---
   Future<List<dynamic>> fetchCiudadanos() async {
     final response = await http.get(
       Uri.parse('https://heimdall-qxbv.onrender.com/api/ciudadanos/all'),
@@ -91,7 +93,7 @@ class _InformesScreenState extends State<InformesScreen> {
     }
   }
 
-// --- Función para obtener Artículos del Código Penal ---
+  // --- Función para obtener Artículos del Código Penal ---
   Future<List<dynamic>> fetchArticulos() async {
     // CORRECCIÓN: Actualizamos la ruta a 'codigopenal/all'
     final response = await http.get(
@@ -103,6 +105,31 @@ class _InformesScreenState extends State<InformesScreen> {
       return jsonDecode(response.body);
     } else {
       throw Exception('Error al cargar artículos');
+    }
+  }
+
+  // --- Funcion para idcondenas
+  Future<Map<String,dynamic>> fetchIdcondena(String Fecha_I, String Duracion, String Importe, String Estatus, String id_tipocondenaFK, String curpFK) async {
+    final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/add');
+    final body = {
+      'Fecha_I': Fecha_I,
+      'Duracion': Duracion,
+      'Importe': Importe,
+      'Estatus': Estatus,
+      'id_tipocondenaFK': id_tipocondenaFK,
+      'curpFK': curpFK
+    };
+    print("BODY: ${jsonEncode(body)}");
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Error al generar idcondena');
     }
   }
 
@@ -184,34 +211,65 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                     ),
                     // --- Campos del Formulario ---
-                    TextField(controller: _calleController, decoration: const InputDecoration(labelText: 'Calle')),
-                    TextField(controller: _coloniaController, decoration: const InputDecoration(labelText: 'Colonia')),
-                    TextField(controller: _numeroExteriorController, decoration: const InputDecoration(labelText: 'Número Exterior')),
-                    TextField(controller: _ciudadController, decoration: const InputDecoration(labelText: 'Ciudad')),
-                    TextField(controller: _estadoController, decoration: const InputDecoration(labelText: 'Estado')),
-                    TextField(controller: _paisController, decoration: const InputDecoration(labelText: 'País')),
+                    TextField(
+                      controller: _calleController,
+                      decoration: const InputDecoration(labelText: 'Calle'),
+                    ),
+                    TextField(
+                      controller: _coloniaController,
+                      decoration: const InputDecoration(labelText: 'Colonia'),
+                    ),
+                    TextField(
+                      controller: _numeroExteriorController,
+                      decoration: const InputDecoration(
+                        labelText: 'Número Exterior',
+                      ),
+                    ),
+                    TextField(
+                      controller: _ciudadController,
+                      decoration: const InputDecoration(labelText: 'Ciudad'),
+                    ),
+                    TextField(
+                      controller: _estadoController,
+                      decoration: const InputDecoration(labelText: 'Estado'),
+                    ),
+                    TextField(
+                      controller: _paisController,
+                      decoration: const InputDecoration(labelText: 'País'),
+                    ),
                     const SizedBox(height: 15),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[300], // Color verde similar al boton '+' de la imagen
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors
+                              .green[300], // Color verde similar al boton '+' de la imagen
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
                           ),
-                          onPressed: () {
-                            // Llamamos a la nueva ventana pasando los controladores
-                            _showInvolucradosDialog(
-                              context,
-                              _involucradosController,
-                              _agentesController,
-                              _descripcionController
-                            );
-                          },
-                          child: const Text('Gestionar informe', style: TextStyle(color: Colors.white)),
+                        ),
+                        onPressed: () {
+                          // Llamamos a la nueva ventana pasando los controladores
+                          _showInvolucradosDialog(
+                            context,
+                            _involucradosController,
+                            _agentesController,
+                            _descripcionController,
+                          );
+                        },
+                        child: const Text(
+                          'Gestionar informe',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                    
-                    TextField(controller: _descripcionController, decoration: const InputDecoration(labelText: 'Descripción')),
+                    ),
+
+                    TextField(
+                      controller: _descripcionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Descripción',
+                      ),
+                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -231,9 +289,9 @@ class _InformesScreenState extends State<InformesScreen> {
                       estado: _estadoController.text,
                       pais: _paisController.text,
                       descripcion: _descripcionController.text,
-                      involucrados: _involucradosController.text, // Pasar valor
-                      agentes: _agentesController.text, // Pasar valor
-                      fotos: _selectedImages,
+                      involucrados: _involucradosSel,
+                      agentes: _agentesSel,
+                      fotos: [],
                       isActivo: isActivo, // Pasa el estado del candado
                     );
                     Navigator.of(context).pop();
@@ -250,11 +308,11 @@ class _InformesScreenState extends State<InformesScreen> {
 
   // Nueva función para mostrar el diálogo de involucrados
   void _showInvolucradosDialog(
-      BuildContext context,
-      TextEditingController involucradosCtrl,
-      TextEditingController agentesCtrl,
-      TextEditingController descripcionCtrl) {
-    
+    BuildContext context,
+    TextEditingController involucradosCtrl,
+    TextEditingController agentesCtrl,
+    TextEditingController descripcionCtrl,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false, // Obliga a usar la X o Actualizar
@@ -262,7 +320,9 @@ class _InformesScreenState extends State<InformesScreen> {
         return Dialog(
           backgroundColor: const Color(0xFFE0E0E0), // Fondo gris claro
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0), // Bordes muy redondeados (Phone shape)
+            borderRadius: BorderRadius.circular(
+              30.0,
+            ), // Bordes muy redondeados (Phone shape)
           ),
           child: Container(
             height: 600, // Altura fija para simular la pantalla
@@ -290,19 +350,23 @@ class _InformesScreenState extends State<InformesScreen> {
                           controller: involucradosCtrl,
                           icon: Icons.add, // Icono + verde simulado
                           onIconPressed: () {
-                            _showSeleccionarCiudadanos(context, involucradosCtrl);
+                            _showSeleccionarCiudadanos(
+                              context,
+                              involucradosCtrl,
+                            );
                           },
                         ),
                         const SizedBox(height: 15),
 
                         // --- Tarjeta 2: Lista de Agentes ---
-                       _buildEstiloTarjeta(
+                        _buildEstiloTarjeta(
                           label: "Lista de Agentes\nInvolucrados",
                           controller: agentesCtrl,
                           maxLines: 4, // <--- MODIFICACIÓN: Caja más grande
-                          icon: Icons.add, // <--- MODIFICACIÓN: Icono '+' activado
+                          icon: Icons
+                              .add, // <--- MODIFICACIÓN: Icono '+' activado
                           onIconPressed: () {
-                             // <--- MODIFICACIÓN: Abrir modal de agentes
+                            // <--- MODIFICACIÓN: Abrir modal de agentes
                             _showSeleccionarAgentes(context, agentesCtrl);
                           },
                         ),
@@ -327,7 +391,9 @@ class _InformesScreenState extends State<InformesScreen> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4D7FF), // Azul pastel similar a la imagen
+                      backgroundColor: const Color(
+                        0xFFC4D7FF,
+                      ), // Azul pastel similar a la imagen
                       foregroundColor: Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -339,7 +405,10 @@ class _InformesScreenState extends State<InformesScreen> {
                     },
                     child: const Text(
                       "Actualizar",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -349,11 +418,7 @@ class _InformesScreenState extends State<InformesScreen> {
                 // --- Botón X (Cerrar) ---
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(
-                    Icons.close,
-                    size: 50,
-                    color: Colors.black,
-                  ),
+                  child: const Icon(Icons.close, size: 50, color: Colors.black),
                 ),
               ],
             ),
@@ -364,7 +429,10 @@ class _InformesScreenState extends State<InformesScreen> {
   }
 
   // --- Nuevo Modal: Lista de Ciudadanos (API) ---
-  void _showSeleccionarCiudadanos(BuildContext context, TextEditingController controller) {
+  void _showSeleccionarCiudadanos(
+    BuildContext context,
+    TextEditingController controller,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -379,15 +447,22 @@ class _InformesScreenState extends State<InformesScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
-                 // Notch
+                // Notch
                 Container(
-                  width: 60, height: 6,
-                  decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                  width: 60,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Título
-                const Text("Seleccionar Ciudadano", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Seleccionar Ciudadano",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
 
                 // --- Contenedor Blanco con la Lista ---
@@ -403,45 +478,66 @@ class _InformesScreenState extends State<InformesScreen> {
                     child: FutureBuilder<List<dynamic>>(
                       future: fetchCiudadanos(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         } else if (snapshot.hasError) {
-                          return Center(child: Text("Error: ${snapshot.error}"));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text("No hay ciudadanos registrados."));
+                          return Center(
+                            child: Text("Error: ${snapshot.error}"),
+                          );
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text("No hay ciudadanos registrados."),
+                          );
                         }
 
                         final ciudadanos = snapshot.data!;
-                        
+
                         return ListView.separated(
                           itemCount: ciudadanos.length,
                           separatorBuilder: (_, __) => const Divider(),
                           itemBuilder: (context, index) {
-                          final c = ciudadanos[index];
-                          
-                          // CORRECCIÓN 1: Manejo de nulos para evitar "Luis null null"
-                          // Si el dato es null, usamos una cadena vacía ''
-                          String nombrePila = c['Nombre'] ?? '';
-                          String paterno = c['Apellido_Paterno'] ?? '';
-                          String materno = c['Apellido_Materno'] ?? '';
-                          
-                          // .trim() elimina espacios extra si falta algún apellido
-                          final nombreCompleto = "$nombrePila $paterno $materno".trim();
-                          
-                          final curp = c['CURP'] ?? 'Sin CURP';
+                            final c = ciudadanos[index];
 
-                          return ListTile(
-                            leading: const Icon(Icons.person, color: Colors.blueGrey),
-                            title: Text(nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text(curp),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                            onTap: () {
-                              // CORRECCIÓN 2: En lugar de agregar directo, abrimos el nuevo modal
-                              // Pasamos los datos del ciudadano y el controlador original
-                              _showDetalleInvolucrado(context, c, controller);
-                            },
-                          );
-                        },
+                            // CORRECCIÓN 1: Manejo de nulos para evitar "Luis null null"
+                            // Si el dato es null, usamos una cadena vacía ''
+                            String nombrePila = c['Nombre'] ?? '';
+                            String paterno = c['Apellido_Paterno'] ?? '';
+                            String materno = c['Apellido_Materno'] ?? '';
+
+                            // .trim() elimina espacios extra si falta algún apellido
+                            final nombreCompleto =
+                                "$nombrePila $paterno $materno".trim();
+
+                            final curp = c['CURP'] ?? 'Sin CURP';
+
+                            return ListTile(
+                              leading: const Icon(
+                                Icons.person,
+                                color: Colors.blueGrey,
+                              ),
+                              title: Text(
+                                nombreCompleto,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(curp),
+                              trailing: const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              onTap: () {
+                                // CORRECCIÓN 2: En lugar de agregar directo, abrimos el nuevo modal
+                                // Pasamos los datos del ciudadano y el controlador original
+                                _showDetalleInvolucrado(context, c, controller);
+                              },
+                            );
+                          },
                         );
                       },
                     ),
@@ -449,7 +545,7 @@ class _InformesScreenState extends State<InformesScreen> {
                 ),
 
                 const SizedBox(height: 20),
-                
+
                 // Botón X (Cerrar)
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
@@ -464,7 +560,11 @@ class _InformesScreenState extends State<InformesScreen> {
   }
 
   // --- Nuevo Modal: Detalle Involucrado (Diseño Image) ---
-  void _showDetalleInvolucrado(BuildContext context, Map<String, dynamic> ciudadano, TextEditingController controllerParent) {
+  void _showDetalleInvolucrado(
+    BuildContext context,
+    Map<String, dynamic> ciudadano,
+    TextEditingController controllerParent,
+  ) {
     // Preparamos los datos limpios
     String nombre = ciudadano['Nombre'] ?? '';
     String paterno = ciudadano['Apellido_Paterno'] ?? '';
@@ -473,7 +573,7 @@ class _InformesScreenState extends State<InformesScreen> {
     String curp = ciudadano['CURP'] ?? 'Sin CURP';
 
     // Lista temporal para almacenar los artículos que se agreguen en este modal
-    List<String> articulosLocales = []; 
+    List<Map<String, dynamic>> articulosLocales = [];
 
     showDialog(
       context: context,
@@ -487,21 +587,28 @@ class _InformesScreenState extends State<InformesScreen> {
                 borderRadius: BorderRadius.circular(30.0),
               ),
               child: Container(
-                height: 650, 
+                height: 650,
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     // Notch decorativo
                     Container(
-                      width: 60, height: 6,
-                      decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                      width: 60,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     const SizedBox(height: 20),
 
                     // --- Campo CURP (Solo lectura) ---
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 15,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(25),
@@ -509,8 +616,17 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text("Curp Ciudadano", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text(curp, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Curp Ciudadano",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            curp,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -519,7 +635,10 @@ class _InformesScreenState extends State<InformesScreen> {
                     // --- Campo Nombre (Solo lectura) ---
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 15,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(25),
@@ -527,8 +646,17 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text("Nombre Ciudadano", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text(nombreCompleto, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Nombre Ciudadano",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            nombreCompleto,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -550,16 +678,33 @@ class _InformesScreenState extends State<InformesScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Center(
-                                  child: Text("Lista de artículos", style: TextStyle(fontSize: 16, color: Colors.black87)),
+                                  child: Text(
+                                    "Lista de artículos",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
                                 ),
                                 const Divider(),
                                 Expanded(
-                                  child: articulosLocales.isEmpty 
-                                  ? const Center(child: Text("Sin artículos", style: TextStyle(color: Colors.grey)))
-                                  : ListView.builder(
-                                      itemCount: articulosLocales.length,
-                                      itemBuilder: (ctx, idx) => Text("- ${articulosLocales[idx]}"),
-                                    ),
+                                  child: articulosLocales.isEmpty
+                                      ? const Center(
+                                          child: Text(
+                                            "Sin artículos",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          itemCount: articulosLocales.length,
+                                          itemBuilder: (ctx, idx) {
+                                            final art = articulosLocales[idx];
+                                            final titulo = "Art. ${art['N_Articulo']} - ${art['NombreArt']}";
+                                            return Text("- $titulo");
+                                          },
+                                        ),
                                 ),
                               ],
                             ),
@@ -572,7 +717,6 @@ class _InformesScreenState extends State<InformesScreen> {
                               onTap: () {
                                 // MODIFICACIÓN: Llamar al modal de Selección de Artículos
                                 _showSeleccionarArticulos(context, (nuevoArticulo) {
-                                  // Esta función se ejecuta cuando el usuario elige un artículo
                                   setStateModal(() {
                                     articulosLocales.add(nuevoArticulo);
                                   });
@@ -584,10 +728,13 @@ class _InformesScreenState extends State<InformesScreen> {
                                   color: Color(0xFFA5F2C8), // Verde pastel
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.add, color: Colors.black54),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Colors.black54,
+                                ),
                               ),
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -600,39 +747,114 @@ class _InformesScreenState extends State<InformesScreen> {
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFA5F2C8), // Verde similar a la imagen
+                          backgroundColor: const Color(
+                            0xFFA5F2C8,
+                          ), // Verde similar a la imagen
                           foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        onPressed: () {
-                        // 1. Recopilar texto existente en el controlador padre
-                        String textoPrevio = controllerParent.text;
-                        
-                        // 2. Construir la cadena del nuevo ciudadano con sus artículos
-                        // Formato: "JUAN PEREZ (CURP123) [Articulo1, Articulo2]"
-                        String articulosString = articulosLocales.isEmpty 
-                            ? "Sin artículos" 
-                            : articulosLocales.join(" / ");
+                        onPressed: () async {
+                          // 1. VALIDACIÓN: Verificar que haya al menos un artículo
+                          if (articulosLocales.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Debe agregar al menos un artículo (delito) al ciudadano.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
-                        String nuevoRegistro = "$nombreCompleto ($curp)\n   -> Delitos: $articulosString";
+                          // 2. Calcular Importe y Duración Totales
+                          double totalImporte = 0.0;
+                          double totalDuracion = 0.0;
+                          String primerArticuloId = '0';
 
-                        // 3. Unir con lo que ya había
-                        if (textoPrevio.isNotEmpty) {
-                          controllerParent.text = "$textoPrevio\n\n$nuevoRegistro";
-                        } else {
-                          controllerParent.text = nuevoRegistro;
-                        }
+                          if (articulosLocales.isNotEmpty) {
+                            primerArticuloId = (articulosLocales.first['N_Articulo'] ?? '0').toString();
 
-                        // 4. Cerrar el modal
-                        Navigator.of(context).pop(); 
-                        // Si se había cerrado el de selección antes, con este pop basta.
-                      },
+                            for (var art in articulosLocales) {
+                              double importe = double.tryParse(art['Importe']?.toString() ?? '0') ?? 0.0;
+                              totalImporte += importe;
+
+                              double duracion = double.tryParse(art['Tiempo']?.toString() ?? '0') ?? 0.0;
+                              totalDuracion += duracion;
+                            }
+                          }
+
+                          String duracionFinal = totalDuracion > 0 ? totalDuracion.toString() : "0";
+                          String fechaI = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                          String importeStr = totalImporte.toString();
+                          String curp = ciudadano['CURP'] ?? '';
+
+                          int? idCondenaGenerado;
+
+                          // 3. Llamar a fetchIdcondena (API)
+                          try {
+                            // Asumimos id_tipocondenaFK = '5' como en el código pegado por el usuario
+                            var respuesta = await fetchIdcondena(
+                              fechaI,
+                              duracionFinal,
+                              importeStr,
+                              'P',
+                              '5', 
+                              curp,
+                            );
+
+                            print("Condena generada para $curp: ${jsonEncode(respuesta)}");
+
+                            if (respuesta.isNotEmpty && respuesta.containsKey('ID_Condena')) {
+                                idCondenaGenerado = respuesta['ID_Condena'];
+                            } else if (respuesta.isNotEmpty && respuesta.containsKey('id')) {
+                                idCondenaGenerado = respuesta['id'];
+                            }
+
+                          } catch (e) {
+                            print("Error generando condena para $curp: $e");
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error al generar condena: $e")),
+                            );
+                            // Decidir si continuar o no. Por ahora continuamos pero sin ID.
+                          }
+
+                          // 4. Actualizar UI (Texto padre)
+                          String textoPrevio = controllerParent.text;
+                          String articulosString = articulosLocales
+                              .map((a) => "Art. ${a['N_Articulo']} - ${a['NombreArt']}")
+                              .join(" / ");
+
+                          String nuevoRegistro = "$nombreCompleto ($curp)\n   -> Delitos: $articulosString";
+
+                          if (textoPrevio.isNotEmpty) {
+                            controllerParent.text = "$textoPrevio\n\n$nuevoRegistro";
+                          } else {
+                            controllerParent.text = nuevoRegistro;
+                          }
+
+                          // 5. Actualizar Estado (_involucradosSel)
+                          setState(() {
+                            _involucradosSel.add({
+                              'CURP': curp,
+                              'Articulos': articulosLocales,
+                              'Nombre': nombreCompleto,
+                              'Id_Condena': idCondenaGenerado, // Guardamos el ID retornado
+                            });
+                          });
+
+                          // 6. Cerrar modal
+                          Navigator.of(context).pop();
+                        },
                         child: const Text(
                           "Agregar\nInvolucrados",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -642,7 +864,11 @@ class _InformesScreenState extends State<InformesScreen> {
                     // --- Botón X (Cerrar) ---
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: const Icon(Icons.close, size: 40, color: Colors.black),
+                      child: const Icon(
+                        Icons.close,
+                        size: 40,
+                        color: Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -654,8 +880,11 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-// --- Nuevo Modal: Lista de Artículos (API) ---
-  void _showSeleccionarArticulos(BuildContext context, Function(String) onArticuloSelected) {
+  // --- Nuevo Modal: Lista de Artículos (API) ---
+  void _showSeleccionarArticulos(
+    BuildContext context,
+    Function(Map<String, dynamic>) onArticuloSelected,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -672,13 +901,20 @@ class _InformesScreenState extends State<InformesScreen> {
               children: [
                 // Notch
                 Container(
-                  width: 60, height: 6,
-                  decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                  width: 60,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // Título
-                const Text("Seleccionar Artículo", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Seleccionar Artículo",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
 
                 // --- Contenedor Blanco con la Lista ---
@@ -694,12 +930,20 @@ class _InformesScreenState extends State<InformesScreen> {
                     child: FutureBuilder<List<dynamic>>(
                       future: fetchArticulos(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         } else if (snapshot.hasError) {
-                          return Center(child: Text("Error: ${snapshot.error}"));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text("No hay artículos registrados."));
+                          return Center(
+                            child: Text("Error: ${snapshot.error}"),
+                          );
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text("No hay artículos registrados."),
+                          );
                         }
 
                         final articulos = snapshot.data!;
@@ -712,30 +956,51 @@ class _InformesScreenState extends State<InformesScreen> {
 
                             // CORRECCIÓN: Búsqueda robusta de datos
                             // 1. Intentamos obtener el NUMERO del artículo (puede venir como 'Articulo', 'id', etc.)
-                            String numArticulo = (a['N_Articulo'] ?? a['N_Articulo']).toString();
-                            
+                            String numArticulo =
+                                (a['N_Articulo'] ?? a['N_Articulo']).toString();
+
                             // 2. Intentamos obtener el NOMBRE o DESCRIPCIÓN (puede venir como 'Nombre', 'Delito', etc.)
-                            String nombre = a['NombreArt'] ?? a['NombreArt'] ?? a['Delito'] ?? a['delito'] ?? 'Sin Nombre';
-                            
+                            String nombre =
+                                a['NombreArt'] ??
+                                a['NombreArt'] ??
+                                a['Delito'] ??
+                                a['delito'] ??
+                                'Sin Nombre';
+
                             // 3. Creamos el título combinado
-                            String tituloMostrado = "Art. $numArticulo - $nombre";
+                            String tituloMostrado =
+                                "Art. $numArticulo - $nombre";
 
                             return ListTile(
-                              leading: const Icon(Icons.gavel, color: Colors.blueGrey), // Icono de mazo legal
+                              leading: const Icon(
+                                Icons.gavel,
+                                color: Colors.blueGrey,
+                              ), // Icono de mazo legal
                               title: Text(
-                                tituloMostrado, 
-                                style: const TextStyle(fontWeight: FontWeight.bold)
+                                tituloMostrado,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               // Si hay una descripción extra larga, la ponemos abajo, si no, no ponemos nada
-                              subtitle: a['Descripcion'] != null 
-                                  ? Text(a['Descripcion'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis) 
+                              subtitle: a['Descripcion'] != null
+                                  ? Text(
+                                      a['Descripcion'].toString(),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    )
                                   : null,
-                              trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
+                              trailing: const Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.green,
+                              ),
                               onTap: () {
-                                Navigator.of(context).pop(); 
+                                Navigator.of(context).pop();
 
                                 // Pasamos el objeto 'a' completo al siguiente modal
-                                _showDetalleArticulo(context, a, (infoCompleta) {
+                                _showDetalleArticulo(context, a, (
+                                  infoCompleta,
+                                ) {
                                   onArticuloSelected(infoCompleta);
                                 });
                               },
@@ -762,27 +1027,49 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
- // --- Nuevo Modal: Detalle Específico del Artículo (Solo lectura Importe) ---
-  void _showDetalleArticulo(BuildContext context, Map<String, dynamic> articuloData, Function(String) onGuardar) {
-    
+  // --- Nuevo Modal: Detalle Específico del Artículo (Solo lectura Importe) ---
+  void _showDetalleArticulo(
+    BuildContext context,
+    Map<String, dynamic> articuloData,
+    Function(Map<String, dynamic>) onGuardar,
+  ) {
     // Obtener datos
-    String numArticulo = (articuloData['N_Articulo'] ?? articuloData['articulo'] ?? articuloData['id'] ?? 'S/N').toString();
-    String nombreArticulo = articuloData['NombreArt'] ?? articuloData['nombre'] ?? articuloData['Delito'] ?? 'Sin Nombre';
-    String descripcionBase = articuloData['Descripcion'] ?? articuloData['descripcion'] ?? '';
-    
+    String numArticulo =
+        (articuloData['N_Articulo'] ??
+                articuloData['articulo'] ??
+                articuloData['id'] ??
+                'S/N')
+            .toString();
+    String nombreArticulo =
+        articuloData['NombreArt'] ??
+        articuloData['nombre'] ??
+        articuloData['Delito'] ??
+        'Sin Nombre';
+    String descripcionBase =
+        articuloData['Descripcion'] ?? articuloData['descripcion'] ?? '';
+
     // NUEVO: Obtener importe fijo
-    String importeFijo = (articuloData['Importe'] ?? articuloData['importe'] ?? articuloData['Multa'] ?? '0').toString();
+    String importeFijo =
+        (articuloData['Importe'] ??
+                articuloData['importe'] ??
+                articuloData['Multa'] ??
+                '0')
+            .toString();
 
     // Solo queda editable el tiempo y la descripción
     final TextEditingController _tiempoCtrl = TextEditingController();
-    final TextEditingController _descCtrl = TextEditingController(text: descripcionBase);
+    final TextEditingController _descCtrl = TextEditingController(
+      text: descripcionBase,
+    );
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: const Color(0xFFE0E0E0),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30.0),
+          ),
           child: Container(
             height: 650,
             padding: const EdgeInsets.all(20),
@@ -790,8 +1077,12 @@ class _InformesScreenState extends State<InformesScreen> {
               child: Column(
                 children: [
                   Container(
-                    width: 60, height: 6,
-                    decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                    width: 60,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -824,12 +1115,17 @@ class _InformesScreenState extends State<InformesScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Descripción", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        const Text(
+                          "Descripción",
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
                         Expanded(
                           child: TextField(
                             controller: _descCtrl,
                             maxLines: 5,
-                            decoration: const InputDecoration(border: InputBorder.none),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
                       ],
@@ -845,29 +1141,36 @@ class _InformesScreenState extends State<InformesScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFA5F2C8),
                         foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
                       ),
                       onPressed: () {
-                        // Armamos la cadena final usando el importe fijo
-                        String infoFinal = "$nombreArticulo (Art. $numArticulo)";
-                        
-                        // Agregamos el importe fijo
-                        infoFinal += " - Importe: \$$importeFijo";
-
-                        // Agregamos tiempo si se escribió algo
-                        if (_tiempoCtrl.text.isNotEmpty) infoFinal += " - Tiempo: ${_tiempoCtrl.text}";
-                        
-                        onGuardar(infoFinal);
+                        final art = {
+                          'N_Articulo': numArticulo,
+                          'NombreArt': nombreArticulo,
+                          'Importe': importeFijo,
+                          'Tiempo': _tiempoCtrl.text,
+                          'Descripcion': _descCtrl.text,
+                        };
+                        onGuardar(art);
                         Navigator.of(context).pop();
                       },
-                      child: const Text("Agregar Artículo", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        "Agregar Artículo",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  
+
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
-                    child: const Icon(Icons.close, size: 40, color: Colors.black),
+                    child: const Icon(
+                      Icons.close,
+                      size: 40,
+                      color: Colors.black,
+                    ),
                   ),
                 ],
               ),
@@ -879,7 +1182,10 @@ class _InformesScreenState extends State<InformesScreen> {
   }
 
   // --- Nuevo Modal: Lista de Agentes (API) ---
-  void _showSeleccionarAgentes(BuildContext context, TextEditingController controller) {
+  void _showSeleccionarAgentes(
+    BuildContext context,
+    TextEditingController controller,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -896,13 +1202,20 @@ class _InformesScreenState extends State<InformesScreen> {
               children: [
                 // Notch
                 Container(
-                  width: 60, height: 6,
-                  decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                  width: 60,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // Título
-                const Text("Seleccionar Agente", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Seleccionar Agente",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
 
                 // --- Lista de Agentes ---
@@ -918,12 +1231,20 @@ class _InformesScreenState extends State<InformesScreen> {
                     child: FutureBuilder<List<dynamic>>(
                       future: fetchAgentes(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         } else if (snapshot.hasError) {
-                          return Center(child: Text("Error: ${snapshot.error}"));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text("No hay agentes disponibles."));
+                          return Center(
+                            child: Text("Error: ${snapshot.error}"),
+                          );
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text("No hay agentes disponibles."),
+                          );
                         }
 
                         final agentes = snapshot.data!;
@@ -933,30 +1254,53 @@ class _InformesScreenState extends State<InformesScreen> {
                           separatorBuilder: (_, __) => const Divider(),
                           itemBuilder: (context, index) {
                             final a = agentes[index];
-                            
+
                             // Construimos nombre y placa de forma segura
                             String nombre = a['Nombre'] ?? '';
                             String paterno = a['Apellido_Paterno'] ?? '';
-                            String placa = a['N_Placa']?.toString() ?? 'Sin Placa';
+                            String placa =
+                                a['N_Placa']?.toString() ?? 'Sin Placa';
                             String nombreCompleto = "$nombre $paterno".trim();
 
                             return ListTile(
-                              leading: const Icon(Icons.badge, color: Colors.indigo), // Icono de placa
-                              title: Text(nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              leading: const Icon(
+                                Icons.badge,
+                                color: Colors.indigo,
+                              ), // Icono de placa
+                              title: Text(
+                                nombreCompleto,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               subtitle: Text("Placa: $placa"),
-                              trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
+                              trailing: const Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.green,
+                              ),
                               onTap: () {
                                 // Lógica para agregar al input sin borrar lo anterior
-                                String nuevoAgente = "$nombreCompleto (Placa: $placa)";
+                                String nuevoAgente =
+                                    "$nombreCompleto (Placa: $placa)";
                                 String textoActual = controller.text;
 
                                 if (textoActual.isNotEmpty) {
-                                  controller.text = "$textoActual\n$nuevoAgente";
+                                  controller.text =
+                                      "$textoActual\n$nuevoAgente";
                                 } else {
                                   controller.text = nuevoAgente;
                                 }
-                                
-                                Navigator.of(context).pop(); // Cierra el modal tras seleccionar
+
+                                setState(() {
+                                  _agentesSel.add({
+                                    'Num_Placa': placa,
+                                    'Nombre': nombreCompleto,
+                                  });
+                                });
+
+                                Navigator.of(
+                                  context,
+                                ).pop(); // Cierra el modal tras seleccionar
                               },
                             );
                           },
@@ -991,7 +1335,11 @@ class _InformesScreenState extends State<InformesScreen> {
         borderRadius: BorderRadius.circular(25),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -1007,11 +1355,9 @@ class _InformesScreenState extends State<InformesScreen> {
       ),
       child: TextField(
         controller: ctrl,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
-        decoration: InputDecoration(
-          hintText: label,
-          border: InputBorder.none,
-        ),
+        decoration: InputDecoration(hintText: label, border: InputBorder.none),
       ),
     );
   }
@@ -1039,10 +1385,7 @@ class _InformesScreenState extends State<InformesScreen> {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
               ),
               TextField(
                 controller: controller,
@@ -1061,7 +1404,8 @@ class _InformesScreenState extends State<InformesScreen> {
           Positioned(
             right: 10,
             top: 10,
-            child: GestureDetector( // <--- Hacemos el icono clickeable
+            child: GestureDetector(
+              // <--- Hacemos el icono clickeable
               onTap: onIconPressed,
               child: Container(
                 padding: const EdgeInsets.all(4),
@@ -1072,12 +1416,10 @@ class _InformesScreenState extends State<InformesScreen> {
                 child: Icon(icon, size: 20, color: Colors.black54),
               ),
             ),
-          )
+          ),
       ],
     );
   }
-
- 
 
   Future<void> _addReport({
     required String calle,
@@ -1087,8 +1429,8 @@ class _InformesScreenState extends State<InformesScreen> {
     required String estado,
     required String pais,
     required String descripcion,
-    required String involucrados, // Nuevo parámetro
-    required String agentes, // Nuevo parámetro
+    required List<dynamic> involucrados,
+    required List<dynamic> agentes,
     required List<XFile> fotos,
     required bool isActivo, // Recibe el estado del candado
   }) async {
@@ -1096,6 +1438,30 @@ class _InformesScreenState extends State<InformesScreen> {
       'https://heimdall-qxbv.onrender.com/api/informes/add',
     );
     var request = http.MultipartRequest('POST', url);
+
+    // TRANSFORMACIÓN DE DATOS PARA LA API
+    // 1. Agentes: Solo enviar Num_Placa
+    List<Map<String, dynamic>> agentesApi = agentes.map((a) {
+      return {
+        'Num_Placa': a['Num_Placa'],
+      };
+    }).toList();
+
+    // 2. Involucrados: Transformar Articulos (N_Articulo -> Num_Art) y limpiar campos
+    List<Map<String, dynamic>> involucradosApi = involucrados.map((inv) {
+      List<dynamic> artsOriginal = inv['Articulos'] ?? [];
+      List<Map<String, dynamic>> artsApi = artsOriginal.map((art) {
+        return {
+          'Num_Art': art['N_Articulo'], // Mapeo clave
+        };
+      }).toList();
+
+      return {
+        'CURP': inv['CURP'],
+        'Articulos': artsApi,
+        'Id_Condena': inv['Id_Condena'],
+      };
+    }).toList();
 
     Map<String, dynamic> datos = {
       'Estatus': isActivo ? 'A' : 'C', // Usa el estado del candado para el API
@@ -1109,19 +1475,12 @@ class _InformesScreenState extends State<InformesScreen> {
         'Estado': estado,
         'Pais': pais,
       },
-      'Informe_Agentes': agentes
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
-      'Informe_Involucrados': involucrados
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
+      'Informe_Agentes': agentesApi,
+      'Informe_Involucrados': involucradosApi,
     };
 
     // 2. Agrega los datos JSON como un campo 'datos'
+    print("PAYLOAD JSON: ${jsonEncode(datos)}"); // <--- LOG PARA DEBUG
     request.fields['datos'] = jsonEncode(datos);
 
     // 3. Agrega las fotos
@@ -1141,6 +1500,8 @@ class _InformesScreenState extends State<InformesScreen> {
       if (response.statusCode == 201) {
         setState(() {
           _futureInformes = fetchInformes();
+          _involucradosSel = [];
+          _agentesSel = [];
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Informe agregado con éxito')),

@@ -101,94 +101,96 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE7E7E7),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('lib/assets/images/logo.jpeg', width: 200, height: 250),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('lib/assets/images/logo.jpeg', width: 200, height: 250),
 
-            // Input de usuario
-            SizedBox(
-              width: 300,
-              height: 60,
-              child: TextField(
-                controller: _user,
-                enabled: !_isLoading, // Bloquea cuando _isLoading es true
-                decoration: InputDecoration(
-                  labelText: 'Usuario',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Input de contraseña
-            SizedBox(
-              width: 300,
-              height: 60,
-              child: TextField(
-                controller: _pwd,
-                enabled: !_isLoading, // Bloquea cuando _isLoading es true
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+              // Input de usuario
+              SizedBox(
+                width: 300,
+                height: 60,
+                child: TextField(
+                  controller: _user,
+                  enabled: !_isLoading, // Bloquea cuando _isLoading es true
+                  decoration: InputDecoration(
+                    labelText: 'Usuario',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    onPressed: _isLoading
-                        ? null // Deshabilita botón cuando está cargando
-                        : () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            SizedBox(
-              width: 160,
-              height: 45,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Iniciar sesión',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+              // Input de contraseña
+              SizedBox(
+                width: 300,
+                height: 60,
+                child: TextField(
+                  controller: _pwd,
+                  enabled: !_isLoading, // Bloquea cuando _isLoading es true
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                       ),
+                      onPressed: _isLoading
+                          ? null // Deshabilita botón cuando está cargando
+                          : () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: 160,
+                height: 45,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Iniciar sesión',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
