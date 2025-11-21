@@ -388,7 +388,7 @@ class _InformesScreenState extends State<InformesScreen> {
 
                 const SizedBox(height: 10),
 
-                // --- Botón Actualizar (Azul claro) ---
+                // Botón Actualizar
                 SizedBox(
                   width: 200,
                   height: 50,
@@ -416,7 +416,7 @@ class _InformesScreenState extends State<InformesScreen> {
 
                 const SizedBox(height: 20),
 
-                // --- Botón X (Cerrar) ---
+                // Botón X para cerrarr
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: const Icon(Icons.close, size: 50, color: Colors.black),
@@ -429,7 +429,7 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // --- Nuevo Modal: Lista de Ciudadanos (API) ---
+  // Modal: Lista de Ciudadanos (API)
   void _showSeleccionarCiudadanos(
     BuildContext context,
     TextEditingController controller,
@@ -503,7 +503,6 @@ class _InformesScreenState extends State<InformesScreen> {
                           itemBuilder: (context, index) {
                             final c = ciudadanos[index];
 
-                            // CORRECCIÓN 1: Manejo de nulos para evitar "Luis null null"
                             // Si el dato es null, usamos una cadena vacía ''
                             String nombrePila = c['Nombre'] ?? '';
                             String paterno = c['Apellido_Paterno'] ?? '';
@@ -560,7 +559,7 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // --- Nuevo Modal: Detalle Involucrado (Diseño Image) ---
+  // Modal: Detalle Involucrado
   void _showDetalleInvolucrado(
     BuildContext context,
     Map<String, dynamic> ciudadano,
@@ -603,7 +602,7 @@ class _InformesScreenState extends State<InformesScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // --- Campo CURP (Solo lectura) ---
+                    // Campo CURP
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -633,7 +632,7 @@ class _InformesScreenState extends State<InformesScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // --- Campo Nombre (Solo lectura) ---
+                    // Campo Nombre
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -663,7 +662,7 @@ class _InformesScreenState extends State<InformesScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // --- Caja Grande: Lista de Artículos ---
+                    // Lista de Artículos
                     Expanded(
                       child: Stack(
                         children: [
@@ -716,7 +715,7 @@ class _InformesScreenState extends State<InformesScreen> {
                             top: 10,
                             child: GestureDetector(
                               onTap: () {
-                                // MODIFICACIÓN: Llamar al modal de Selección de Artículos
+                                // Llamar al modal de Selección de Artículos
                                 _showSeleccionarArticulos(context, (nuevoArticulo) {
                                   setStateModal(() {
                                     articulosLocales.add(nuevoArticulo);
@@ -742,7 +741,7 @@ class _InformesScreenState extends State<InformesScreen> {
 
                     const SizedBox(height: 20),
 
-                    // --- Botón Agregar Involucrados (Verde Grande) ---
+                    // Botón Agregar Involucrados
                     SizedBox(
                       width: 200,
                       height: 50,
@@ -857,7 +856,7 @@ class _InformesScreenState extends State<InformesScreen> {
 
                     const SizedBox(height: 10),
 
-                    // --- Botón X (Cerrar) ---
+                    //  Botón X para cerrar
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: const Icon(
@@ -909,7 +908,7 @@ class _InformesScreenState extends State<InformesScreen> {
                     const Text("Seleccionar Condena y Artículo", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 15),
 
-                    // --- Dropdown de Tipos de Condena ---
+                    // Dropdown de Tipos de Condena
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -960,7 +959,7 @@ class _InformesScreenState extends State<InformesScreen> {
                     ),
                     const SizedBox(height: 15),
 
-                    // --- Lista de Artículos ---
+                    //  Lista de Artículos
                     Expanded(
                       child: Container(
                         width: double.infinity,
@@ -996,7 +995,7 @@ class _InformesScreenState extends State<InformesScreen> {
                                       : null,
                                   trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
                                   onTap: () {
-                                    // VALIDACIÓN: Obligar a seleccionar condena
+                                    // VALIDACIÓN: Obligar a seleccionar el tipo de condena condena
                                     if (selectedCondenaId == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Por favor, selecciona primero un Tipo de Condena.")));
                                       return;
@@ -1008,8 +1007,8 @@ class _InformesScreenState extends State<InformesScreen> {
                                     _showDetalleArticulo(
                                       context, 
                                       a, 
-                                      selectedCondenaId!,        // <--- PASAMOS ID
-                                      selectedCondenaNombre!,    // <--- PASAMOS NOMBRE
+                                      selectedCondenaId!,        // Se pasa el ID
+                                      selectedCondenaNombre!,    // Se pasa el nombre
                                       (infoCompleta) {
                                         onArticuloSelected(infoCompleta);
                                       }
@@ -1037,7 +1036,7 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // Modal: Detalle Específico del Artículo (Solo lectura Importe) ---
+  // Modal: Detalle Específico del Artículo (Solo lectura Importe)
   void _showDetalleArticulo(
     BuildContext context,
     Map<String, dynamic> articuloData,
@@ -1068,7 +1067,7 @@ class _InformesScreenState extends State<InformesScreen> {
                   Container(width: 60, height: 6, decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10))),
                   const SizedBox(height: 20),
 
-                  // --- Visualización de la Condena Seleccionada ---
+                  // Visualización de la Condena Seleccionada
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.only(bottom: 10),
@@ -1124,7 +1123,7 @@ class _InformesScreenState extends State<InformesScreen> {
                           'Importe': importeFijo,
                           'Tiempo': _tiempoCtrl.text,
                           'Descripcion': _descCtrl.text,
-                          // --- GUARDAMOS EL ID DE LA CONDENA AQUÍ ---
+                          // Guardamos el ID de la condena aquí también
                           'condenaId': condenaId, 
                           'condenaNombre': condenaNombre
                         };
@@ -1145,7 +1144,7 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // --- Nuevo Modal: Lista de Agentes (API) ---
+  // Modal: Lista de Agentes (API)
   void _showSeleccionarAgentes(
     BuildContext context,
     TextEditingController controller,
@@ -1182,7 +1181,7 @@ class _InformesScreenState extends State<InformesScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                // --- Lista de Agentes ---
+                //  Lista de Agentes 
                 Expanded(
                   child: Container(
                     width: double.infinity,
