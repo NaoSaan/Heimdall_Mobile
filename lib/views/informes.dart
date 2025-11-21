@@ -108,6 +108,20 @@ class _InformesScreenState extends State<InformesScreen> {
     }
   }
 
+  // --- NUEVO: Función para obtener Tipos de Condena ---
+  Future<List<dynamic>> fetchTiposCondena() async {
+    final response = await http.get(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/tipos/all'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Error al cargar tipos de condena');
+    }
+  }
+
   // --- Funcion para idcondenas
   Future<Map<String,dynamic>> fetchIdcondena(String Fecha_I, String Duracion, String Importe, String Estatus, String id_tipocondenaFK, String curpFK) async {
     final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/add');
@@ -253,8 +267,7 @@ class _InformesScreenState extends State<InformesScreen> {
                           _showInvolucradosDialog(
                             context,
                             _involucradosController,
-                            _agentesController,
-                            _descripcionController,
+                            _agentesController
                           );
                         },
                         child: const Text(
@@ -311,21 +324,19 @@ class _InformesScreenState extends State<InformesScreen> {
     BuildContext context,
     TextEditingController involucradosCtrl,
     TextEditingController agentesCtrl,
-    TextEditingController descripcionCtrl,
+    // descripcionCtrl FUE ELIMINADO DE AQUÍ
   ) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Obliga a usar la X o Actualizar
+      barrierDismissible: false, 
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFFE0E0E0), // Fondo gris claro
+          backgroundColor: const Color(0xFFE0E0E0), 
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(
-              30.0,
-            ), // Bordes muy redondeados (Phone shape)
+            borderRadius: BorderRadius.circular(30.0), 
           ),
           child: Container(
-            height: 600, // Altura fija para simular la pantalla
+            height: 600, 
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
@@ -348,7 +359,7 @@ class _InformesScreenState extends State<InformesScreen> {
                         _buildEstiloTarjeta(
                           label: "Lista de Involucrados",
                           controller: involucradosCtrl,
-                          icon: Icons.add, // Icono + verde simulado
+                          icon: Icons.add, 
                           onIconPressed: () {
                             _showSeleccionarCiudadanos(
                               context,
@@ -362,22 +373,14 @@ class _InformesScreenState extends State<InformesScreen> {
                         _buildEstiloTarjeta(
                           label: "Lista de Agentes\nInvolucrados",
                           controller: agentesCtrl,
-                          maxLines: 4, // <--- MODIFICACIÓN: Caja más grande
-                          icon: Icons
-                              .add, // <--- MODIFICACIÓN: Icono '+' activado
+                          maxLines: 4, 
+                          icon: Icons.add, 
                           onIconPressed: () {
-                            // <--- MODIFICACIÓN: Abrir modal de agentes
                             _showSeleccionarAgentes(context, agentesCtrl);
                           },
                         ),
-                        const SizedBox(height: 15),
-
-                        // --- Tarjeta 3: Descripción ---
-                        _buildEstiloTarjeta(
-                          label: "Descripción",
-                          controller: descripcionCtrl,
-                          maxLines: 3,
-                        ),
+                        
+                        
                       ],
                     ),
                   ),
@@ -391,9 +394,7 @@ class _InformesScreenState extends State<InformesScreen> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(
-                        0xFFC4D7FF,
-                      ), // Azul pastel similar a la imagen
+                      backgroundColor: const Color(0xFFC4D7FF), 
                       foregroundColor: Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -401,7 +402,7 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                     ),
                     onPressed: () {
-                      Navigator.of(context).pop(); // Cierra el diálogo guardando lo escrito en los controllers
+                      Navigator.of(context).pop(); 
                     },
                     child: const Text(
                       "Actualizar",
@@ -532,7 +533,7 @@ class _InformesScreenState extends State<InformesScreen> {
                                 color: Colors.grey,
                               ),
                               onTap: () {
-                                // CORRECCIÓN 2: En lugar de agregar directo, abrimos el nuevo modal
+                                Navigator.of(context).pop();
                                 // Pasamos los datos del ciudadano y el controlador original
                                 _showDetalleInvolucrado(context, c, controller);
                               },
@@ -758,32 +759,33 @@ class _InformesScreenState extends State<InformesScreen> {
                         onPressed: () async {
                           // 1. VALIDACIÓN: Verificar que haya al menos un artículo
                           if (articulosLocales.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Debe agregar al menos un artículo (delito) al ciudadano.',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Debe agregar al menos un artículo.'), backgroundColor: Colors.red,
+                            ));
                             return;
                           }
 
-                          // 2. Calcular Importe y Duración Totales
+                          // 2. Calcular Importe, Duración y OBTENER ID CONDENA
                           double totalImporte = 0.0;
                           double totalDuracion = 0.0;
-                          String primerArticuloId = '0';
+                          
+                          // Variable para guardar el ID de condena seleccionado
+                          String idCondenaSeleccionada = '5'; // Valor por defecto o manejo de error
+                          String nombreCondenaLog = '';
 
                           if (articulosLocales.isNotEmpty) {
-                            primerArticuloId = (articulosLocales.first['N_Articulo'] ?? '0').toString();
-
-                            for (var art in articulosLocales) {
-                              double importe = double.tryParse(art['Importe']?.toString() ?? '0') ?? 0.0;
-                              totalImporte += importe;
-
-                              double duracion = double.tryParse(art['Tiempo']?.toString() ?? '0') ?? 0.0;
-                              totalDuracion += duracion;
-                            }
+                              for (var art in articulosLocales) {
+                                  double importe = double.tryParse(art['Importe']?.toString() ?? '0') ?? 0.0;
+                                  totalImporte += importe;
+                                  double duracion = double.tryParse(art['Tiempo']?.toString() ?? '0') ?? 0.0;
+                                  totalDuracion += duracion;
+                              }
+                              
+                              // Tomamos el ID de condena del primer artículo agregado (asumiendo que la condena aplica al reporte actual)
+                              if (articulosLocales.first.containsKey('condenaId')) {
+                                  idCondenaSeleccionada = articulosLocales.first['condenaId'].toString();
+                                  nombreCondenaLog = articulosLocales.first['condenaNombre'].toString();
+                              }
                           }
 
                           String duracionFinal = totalDuracion > 0 ? totalDuracion.toString() : "0";
@@ -793,32 +795,26 @@ class _InformesScreenState extends State<InformesScreen> {
 
                           int? idCondenaGenerado;
 
-                          // 3. Llamar a fetchIdcondena (API)
+                          // 3. Llamar a fetchIdcondena (API) CON EL ID DINÁMICO
                           try {
-                            // Asumimos id_tipocondenaFK = '5' como en el código pegado por el usuario
-                            var respuesta = await fetchIdcondena(
-                              fechaI,
-                              duracionFinal,
-                              importeStr,
-                              'P',
-                              '5', 
-                              curp,
-                            );
+                              print("Generando condena tipo: $nombreCondenaLog (ID: $idCondenaSeleccionada)");
+                              
+                              var respuesta = await fetchIdcondena(
+                                  fechaI,
+                                  duracionFinal,
+                                  importeStr,
+                                  'P',
+                                  idCondenaSeleccionada, // <--- AQUÍ USAMOS LA VARIABLE DINÁMICA
+                                  curp,
+                              );
 
-                            print("Condena generada para $curp: ${jsonEncode(respuesta)}");
-
-                            if (respuesta.isNotEmpty && respuesta.containsKey('ID_Condena')) {
-                                idCondenaGenerado = respuesta['ID_Condena'];
-                            } else if (respuesta.isNotEmpty && respuesta.containsKey('id')) {
-                                idCondenaGenerado = respuesta['id'];
-                            }
-
+                              if (respuesta.isNotEmpty && respuesta.containsKey('ID_Condena')) {
+                                  idCondenaGenerado = respuesta['ID_Condena'];
+                              } else if (respuesta.isNotEmpty && respuesta.containsKey('id')) {
+                                  idCondenaGenerado = respuesta['id'];
+                              }
                           } catch (e) {
-                            print("Error generando condena para $curp: $e");
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error al generar condena: $e")),
-                            );
-                            // Decidir si continuar o no. Por ahora continuamos pero sin ID.
+                              print("Error generando condena: $e");
                           }
 
                           // 4. Actualizar UI (Texto padre)
@@ -880,270 +876,246 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // --- Nuevo Modal: Lista de Artículos (API) ---
+  // Modal: Lista de Artículos (API) ---
   void _showSeleccionarArticulos(
     BuildContext context,
     Function(Map<String, dynamic>) onArticuloSelected,
   ) {
+    String? selectedCondenaId;
+    String? selectedCondenaNombre;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: const Color(0xFFE0E0E0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
-          child: Container(
-            height: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              children: [
-                // Notch
-                Container(
-                  width: 60,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Título
-                const Text(
-                  "Seleccionar Artículo",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-
-                // --- Contenedor Blanco con la Lista ---
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.grey.shade300),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFFE0E0E0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.0),
+              ),
+              child: Container(
+                height: 650,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 60, height: 6,
+                      decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: FutureBuilder<List<dynamic>>(
-                      future: fetchArticulos(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        } else if (snapshot.hasError) {
-                          return Center(
-                            child: Text("Error: ${snapshot.error}"),
-                          );
-                        } else if (!snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Text("No hay artículos registrados."),
-                          );
-                        }
+                    const SizedBox(height: 20),
 
-                        final articulos = snapshot.data!;
+                    const Text("Seleccionar Condena y Artículo", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
 
-                        return ListView.separated(
-                          itemCount: articulos.length,
-                          separatorBuilder: (_, __) => const Divider(),
-                          itemBuilder: (context, index) {
-                            final a = articulos[index];
+                    // --- Dropdown de Tipos de Condena ---
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: FutureBuilder<List<dynamic>>(
+                        future: fetchTiposCondena(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) return const Text("Error cargando condenas");
+                          if (!snapshot.hasData) return const SizedBox(height: 50, child: Center(child: CircularProgressIndicator()));
 
-                            // CORRECCIÓN: Búsqueda robusta de datos
-                            // 1. Intentamos obtener el NUMERO del artículo (puede venir como 'Articulo', 'id', etc.)
-                            String numArticulo =
-                                (a['N_Articulo'] ?? a['N_Articulo']).toString();
+                          final condenas = snapshot.data!;
+                          List<DropdownMenuItem<String>> menuItems = [];
 
-                            // 2. Intentamos obtener el NOMBRE o DESCRIPCIÓN (puede venir como 'Nombre', 'Delito', etc.)
-                            String nombre =
-                                a['NombreArt'] ??
-                                a['NombreArt'] ??
-                                a['Delito'] ??
-                                a['delito'] ??
-                                'Sin Nombre';
+                          for (var c in condenas) {
+                            // Usamos las llaves exactas de tu JSON: 'ID_TipoCondena' y 'Tipo'
+                            String id = c['ID_TipoCondena']?.toString() ?? UniqueKey().toString();
+                            String nombre = c['Tipo']?.toString() ?? 'Sin Tipo';
 
-                            // 3. Creamos el título combinado
-                            String tituloMostrado =
-                                "Art. $numArticulo - $nombre";
+                            // Evitar duplicados visuales
+                            if (!menuItems.any((item) => item.value == id)) {
+                              menuItems.add(DropdownMenuItem<String>(
+                                value: id,
+                                onTap: () => selectedCondenaNombre = nombre,
+                                child: Text(nombre, overflow: TextOverflow.ellipsis),
+                              ));
+                            }
+                          }
 
-                            return ListTile(
-                              leading: const Icon(
-                                Icons.gavel,
-                                color: Colors.blueGrey,
-                              ), // Icono de mazo legal
-                              title: Text(
-                                tituloMostrado,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              // Si hay una descripción extra larga, la ponemos abajo, si no, no ponemos nada
-                              subtitle: a['Descripcion'] != null
-                                  ? Text(
-                                      a['Descripcion'].toString(),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    )
-                                  : null,
-                              trailing: const Icon(
-                                Icons.add_circle_outline,
-                                color: Colors.green,
-                              ),
-                              onTap: () {
-                                Navigator.of(context).pop();
-
-                                // Pasamos el objeto 'a' completo al siguiente modal
-                                _showDetalleArticulo(context, a, (
-                                  infoCompleta,
-                                ) {
-                                  onArticuloSelected(infoCompleta);
+                          return DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              hint: const Text("Seleccione Tipo de Condena"),
+                              value: selectedCondenaId,
+                              items: menuItems,
+                              onChanged: (valor) {
+                                setState(() {
+                                  selectedCondenaId = valor;
                                 });
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // --- Lista de Artículos ---
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: FutureBuilder<List<dynamic>>(
+                          future: fetchArticulos(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                            if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("No hay artículos registrados."));
+
+                            final articulos = snapshot.data!;
+
+                            return ListView.separated(
+                              itemCount: articulos.length,
+                              separatorBuilder: (_, __) => const Divider(),
+                              itemBuilder: (context, index) {
+                                final a = articulos[index];
+                                String numArticulo = (a['N_Articulo'] ?? a['N_Articulo']).toString();
+                                String nombre = a['NombreArt'] ?? a['Delito'] ?? 'Sin Nombre';
+                                String tituloMostrado = "Art. $numArticulo - $nombre";
+
+                                return ListTile(
+                                  leading: const Icon(Icons.gavel, color: Colors.blueGrey),
+                                  title: Text(tituloMostrado, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: a['Descripcion'] != null 
+                                      ? Text(a['Descripcion'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis) 
+                                      : null,
+                                  trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
+                                  onTap: () {
+                                    // VALIDACIÓN: Obligar a seleccionar condena
+                                    if (selectedCondenaId == null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Por favor, selecciona primero un Tipo de Condena.")));
+                                      return;
+                                    }
+
+                                    Navigator.of(context).pop();
+
+                                    // Pasamos el objeto artículo + ID Condena + Nombre Condena
+                                    _showDetalleArticulo(
+                                      context, 
+                                      a, 
+                                      selectedCondenaId!,        // <--- PASAMOS ID
+                                      selectedCondenaNombre!,    // <--- PASAMOS NOMBRE
+                                      (infoCompleta) {
+                                        onArticuloSelected(infoCompleta);
+                                      }
+                                    );
+                                  },
+                                );
                               },
                             );
                           },
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const Icon(Icons.close, size: 50, color: Colors.black),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 20),
-
-                // Botón X (Cerrar)
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.close, size: 50, color: Colors.black),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  // --- Nuevo Modal: Detalle Específico del Artículo (Solo lectura Importe) ---
+  // Modal: Detalle Específico del Artículo (Solo lectura Importe) ---
   void _showDetalleArticulo(
     BuildContext context,
     Map<String, dynamic> articuloData,
+    String condenaId,      // <--- NUEVO
+    String condenaNombre,  // <--- NUEVO
     Function(Map<String, dynamic>) onGuardar,
   ) {
-    // Obtener datos
-    String numArticulo =
-        (articuloData['N_Articulo'] ??
-                articuloData['articulo'] ??
-                articuloData['id'] ??
-                'S/N')
-            .toString();
-    String nombreArticulo =
-        articuloData['NombreArt'] ??
-        articuloData['nombre'] ??
-        articuloData['Delito'] ??
-        'Sin Nombre';
-    String descripcionBase =
-        articuloData['Descripcion'] ?? articuloData['descripcion'] ?? '';
+    String numArticulo = (articuloData['N_Articulo'] ?? articuloData['id'] ?? 'S/N').toString();
+    String nombreArticulo = articuloData['NombreArt'] ?? articuloData['Delito'] ?? 'Sin Nombre';
+    String descripcionBase = articuloData['Descripcion'] ?? '';
+    String importeFijo = (articuloData['Importe'] ?? articuloData['Multa'] ?? '0').toString();
 
-    // NUEVO: Obtener importe fijo
-    String importeFijo =
-        (articuloData['Importe'] ??
-                articuloData['importe'] ??
-                articuloData['Multa'] ??
-                '0')
-            .toString();
-
-    // Solo queda editable el tiempo y la descripción
     final TextEditingController _tiempoCtrl = TextEditingController();
-    final TextEditingController _descCtrl = TextEditingController(
-      text: descripcionBase,
-    );
+    final TextEditingController _descCtrl = TextEditingController(text: descripcionBase);
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: const Color(0xFFE0E0E0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
           child: Container(
             height: 650,
             padding: const EdgeInsets.all(20),
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  Container(
-                    width: 60,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  Container(width: 60, height: 6, decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10))),
                   const SizedBox(height: 20),
 
-                  // 1. Número de Artículo (Solo lectura)
+                  // --- Visualización de la Condena Seleccionada ---
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text("Tipo de Condena Aplicada", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(condenaNombre, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
+                      ],
+                    ),
+                  ),
+
                   _buildReadOnlyField("Número de Artículo: $numArticulo"),
                   const SizedBox(height: 10),
-
-                  // 2. Nombre Artículo (Solo lectura)
                   _buildReadOnlyField("Nombre: $nombreArticulo"),
                   const SizedBox(height: 10),
-
-                  // 3. Importe (CAMBIO: AHORA ES SOLO LECTURA)
                   _buildReadOnlyField("Importe: \$$importeFijo"),
                   const SizedBox(height: 10),
-
-                  // 4. Tiempo Condena (Sigue siendo editable)
                   _buildEditableField("Tiempo Condena", _tiempoCtrl),
                   const SizedBox(height: 10),
 
-                  // 5. Descripción
                   Container(
-                    height: 150,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
+                    height: 150, width: double.infinity, padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.grey.shade300)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Descripción",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
+                        const Text("Descripción", style: TextStyle(color: Colors.grey, fontSize: 12)),
                         Expanded(
-                          child: TextField(
-                            controller: _descCtrl,
-                            maxLines: 5,
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                            ),
-                          ),
+                          child: TextField(controller: _descCtrl, maxLines: 5, decoration: const InputDecoration(border: InputBorder.none)),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Botón Agregar
                   SizedBox(
-                    width: 200,
-                    height: 50,
+                    width: 200, height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFA5F2C8),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
+                        backgroundColor: const Color(0xFFA5F2C8), foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                       ),
                       onPressed: () {
                         final art = {
@@ -1152,26 +1124,18 @@ class _InformesScreenState extends State<InformesScreen> {
                           'Importe': importeFijo,
                           'Tiempo': _tiempoCtrl.text,
                           'Descripcion': _descCtrl.text,
+                          // --- GUARDAMOS EL ID DE LA CONDENA AQUÍ ---
+                          'condenaId': condenaId, 
+                          'condenaNombre': condenaNombre
                         };
                         onGuardar(art);
                         Navigator.of(context).pop();
                       },
-                      child: const Text(
-                        "Agregar Artículo",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: const Text("Agregar Artículo", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 10),
-
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: const Icon(
-                      Icons.close,
-                      size: 40,
-                      color: Colors.black,
-                    ),
-                  ),
+                  GestureDetector(onTap: () => Navigator.of(context).pop(), child: const Icon(Icons.close, size: 40, color: Colors.black)),
                 ],
               ),
             ),
