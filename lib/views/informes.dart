@@ -122,6 +122,32 @@ class _InformesScreenState extends State<InformesScreen> {
     }
   }
 
+  // --- Función para Actualizar Informe ---
+Future<void> _updateReportApi(Map<String, dynamic> datosActualizados) async {
+  // 1. La URL debe ser EXACTAMENTE la que tienes en el backend (/update)
+  final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/informes/update'); 
+  
+  print("Enviando a: $url");
+  print("Datos: ${jsonEncode(datosActualizados)}");
+
+  final response = await http.put( 
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(datosActualizados),
+  );
+
+  if (response.statusCode == 200 || response.statusCode == 201) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Informe actualizado correctamente'), backgroundColor: Colors.green)
+    );
+    setState(() {
+      // Forzar actualización visual
+    });
+  } else {
+    throw Exception('Error servidor (${response.statusCode}): ${response.body}');
+  }
+}
+
   // --- Funcion para idcondenas
   Future<Map<String,dynamic>> fetchIdcondena(String Fecha_I, String Duracion, String Importe, String Estatus, String id_tipocondenaFK, String curpFK) async {
     final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/add');
@@ -429,15 +455,15 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // Modal: Lista de Ciudadanos (API)
-  void _showSeleccionarCiudadanos(
-    BuildContext context,
-    TextEditingController controller,
-  ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
+  // Modal: Lista de Ciudadanos (API) - CORREGIDO PARA UPDATE
+ Future<void> _showSeleccionarCiudadanos(BuildContext context, TextEditingController controller) async {
+  
+  // Variable temporal para capturar la selección
+  Map<String, dynamic>? ciudadanoSeleccionado;
+
+  await showDialog( 
+    context: context,
+    builder: (context) {
         return Dialog(
           backgroundColor: const Color(0xFFE0E0E0),
           shape: RoundedRectangleBorder(
@@ -448,7 +474,6 @@ class _InformesScreenState extends State<InformesScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
-                // Notch
                 Container(
                   width: 60,
                   height: 6,
@@ -458,15 +483,11 @@ class _InformesScreenState extends State<InformesScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Título
                 const Text(
                   "Seleccionar Ciudadano",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-
-                // --- Contenedor Blanco con la Lista ---
                 Expanded(
                   child: Container(
                     width: double.infinity,
@@ -481,18 +502,12 @@ class _InformesScreenState extends State<InformesScreen> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                          return const Center(child: CircularProgressIndicator());
                         } else if (snapshot.hasError) {
-                          return Center(
-                            child: Text("Error: ${snapshot.error}"),
-                          );
+                          return Center(child: Text("Error: ${snapshot.error}"));
                         } else if (!snapshot.hasData ||
                             snapshot.data!.isEmpty) {
-                          return const Center(
-                            child: Text("No hay ciudadanos registrados."),
-                          );
+                          return const Center(child: Text("No hay ciudadanos registrados."));
                         }
 
                         final ciudadanos = snapshot.data!;
@@ -502,39 +517,22 @@ class _InformesScreenState extends State<InformesScreen> {
                           separatorBuilder: (_, __) => const Divider(),
                           itemBuilder: (context, index) {
                             final c = ciudadanos[index];
-
-                            // Si el dato es null, usamos una cadena vacía ''
                             String nombrePila = c['Nombre'] ?? '';
                             String paterno = c['Apellido_Paterno'] ?? '';
                             String materno = c['Apellido_Materno'] ?? '';
-
-                            // .trim() elimina espacios extra si falta algún apellido
-                            final nombreCompleto =
-                                "$nombrePila $paterno $materno".trim();
-
+                            final nombreCompleto = "$nombrePila $paterno $materno".trim();
                             final curp = c['CURP'] ?? 'Sin CURP';
 
                             return ListTile(
-                              leading: const Icon(
-                                Icons.person,
-                                color: Colors.blueGrey,
-                              ),
-                              title: Text(
-                                nombreCompleto,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              leading: const Icon(Icons.person, color: Colors.blueGrey),
+                              title: Text(nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text(curp),
-                              trailing: const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                               onTap: () {
+                                // 1. Guardamos la selección
+                                ciudadanoSeleccionado = c;
+                                // 2. Cerramos SOLAMENTE la lista (para abrir la siguiente ventana desde el flujo principal)
                                 Navigator.of(context).pop();
-                                // Pasamos los datos del ciudadano y el controlador original
-                                _showDetalleInvolucrado(context, c, controller);
                               },
                             );
                           },
@@ -543,10 +541,7 @@ class _InformesScreenState extends State<InformesScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Botón X (Cerrar)
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: const Icon(Icons.close, size: 50, color: Colors.black),
@@ -557,14 +552,19 @@ class _InformesScreenState extends State<InformesScreen> {
         );
       },
     );
+
+    // 3. Si se seleccionó alguien, abrimos la ventana de detalles y ESPERAMOS (await) a que termine
+    if (ciudadanoSeleccionado != null) {
+      await _showDetalleInvolucrado(context, ciudadanoSeleccionado!, controller);
+    }
   }
 
-  // Modal: Detalle Involucrado
-  void _showDetalleInvolucrado(
+ // Modal: Detalle Involucrado (AHORA ES Future<void>)
+  Future<void> _showDetalleInvolucrado(
     BuildContext context,
     Map<String, dynamic> ciudadano,
     TextEditingController controllerParent,
-  ) {
+  ) async { 
     // Preparamos los datos limpios
     String nombre = ciudadano['Nombre'] ?? '';
     String paterno = ciudadano['Apellido_Paterno'] ?? '';
@@ -572,17 +572,16 @@ class _InformesScreenState extends State<InformesScreen> {
     String nombreCompleto = "$nombre $paterno $materno".trim();
     String curp = ciudadano['CURP'] ?? 'Sin CURP';
 
-    // Lista temporal para almacenar los artículos que se agreguen en este modal
     List<Map<String, dynamic>> articulosLocales = [];
 
-    showDialog(
+    // <--- AGREGADO await
+    await showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Usamos StatefulBuilder para poder actualizar la lista de artículos dentro del modal
         return StatefulBuilder(
           builder: (context, setStateModal) {
             return Dialog(
-              backgroundColor: const Color(0xFFE0E0E0), // Fondo gris claro
+              backgroundColor: const Color(0xFFE0E0E0),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
               ),
@@ -591,7 +590,6 @@ class _InformesScreenState extends State<InformesScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Notch decorativo
                     Container(
                       width: 60,
                       height: 6,
@@ -709,13 +707,11 @@ class _InformesScreenState extends State<InformesScreen> {
                               ],
                             ),
                           ),
-                          // Botón flotante "+" dentro de la caja blanca
                           Positioned(
                             right: 10,
                             top: 10,
                             child: GestureDetector(
                               onTap: () {
-                                // Llamar al modal de Selección de Artículos
                                 _showSeleccionarArticulos(context, (nuevoArticulo) {
                                   setStateModal(() {
                                     articulosLocales.add(nuevoArticulo);
@@ -725,7 +721,7 @@ class _InformesScreenState extends State<InformesScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFFA5F2C8), // Verde pastel
+                                  color: Color(0xFFA5F2C8),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -747,16 +743,13 @@ class _InformesScreenState extends State<InformesScreen> {
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(
-                            0xFFA5F2C8,
-                          ), // Verde similar a la imagen
+                          backgroundColor: const Color(0xFFA5F2C8),
                           foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
                         onPressed: () async {
-                          // 1. VALIDACIÓN: Verificar que haya al menos un artículo
                           if (articulosLocales.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                               content: Text('Debe agregar al menos un artículo.'), backgroundColor: Colors.red,
@@ -764,12 +757,9 @@ class _InformesScreenState extends State<InformesScreen> {
                             return;
                           }
 
-                          // 2. Calcular Importe, Duración y OBTENER ID CONDENA
                           double totalImporte = 0.0;
                           double totalDuracion = 0.0;
-                          
-                          // Variable para guardar el ID de condena seleccionado
-                          String idCondenaSeleccionada = '5'; // Valor por defecto o manejo de error
+                          String idCondenaSeleccionada = '5';
                           String nombreCondenaLog = '';
 
                           if (articulosLocales.isNotEmpty) {
@@ -780,7 +770,6 @@ class _InformesScreenState extends State<InformesScreen> {
                                   totalDuracion += duracion;
                               }
                               
-                              // Tomamos el ID de condena del primer artículo agregado (asumiendo que la condena aplica al reporte actual)
                               if (articulosLocales.first.containsKey('condenaId')) {
                                   idCondenaSeleccionada = articulosLocales.first['condenaId'].toString();
                                   nombreCondenaLog = articulosLocales.first['condenaNombre'].toString();
@@ -794,16 +783,13 @@ class _InformesScreenState extends State<InformesScreen> {
 
                           int? idCondenaGenerado;
 
-                          // 3. Llamar a fetchIdcondena (API) CON EL ID DINÁMICO
                           try {
-                              print("Generando condena tipo: $nombreCondenaLog (ID: $idCondenaSeleccionada)");
-                              
                               var respuesta = await fetchIdcondena(
                                   fechaI,
                                   duracionFinal,
                                   importeStr,
                                   'P',
-                                  idCondenaSeleccionada, // <--- AQUÍ USAMOS LA VARIABLE DINÁMICA
+                                  idCondenaSeleccionada,
                                   curp,
                               );
 
@@ -816,7 +802,6 @@ class _InformesScreenState extends State<InformesScreen> {
                               print("Error generando condena: $e");
                           }
 
-                          // 4. Actualizar UI (Texto padre)
                           String textoPrevio = controllerParent.text;
                           String articulosString = articulosLocales
                               .map((a) => "Art. ${a['N_Articulo']} - ${a['NombreArt']}")
@@ -830,17 +815,15 @@ class _InformesScreenState extends State<InformesScreen> {
                             controllerParent.text = nuevoRegistro;
                           }
 
-                          // 5. Actualizar Estado (_involucradosSel)
                           setState(() {
                             _involucradosSel.add({
                               'CURP': curp,
                               'Articulos': articulosLocales,
                               'Nombre': nombreCompleto,
-                              'Id_Condena': idCondenaGenerado, // Guardamos el ID retornado
+                              'Id_Condena': idCondenaGenerado,
                             });
                           });
 
-                          // 6. Cerrar modal
                           Navigator.of(context).pop();
                         },
                         child: const Text(
@@ -856,7 +839,6 @@ class _InformesScreenState extends State<InformesScreen> {
 
                     const SizedBox(height: 10),
 
-                    //  Botón X para cerrar
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: const Icon(
@@ -1040,8 +1022,8 @@ class _InformesScreenState extends State<InformesScreen> {
   void _showDetalleArticulo(
     BuildContext context,
     Map<String, dynamic> articuloData,
-    String condenaId,      // <--- NUEVO
-    String condenaNombre,  // <--- NUEVO
+    String condenaId,     
+    String condenaNombre,  
     Function(Map<String, dynamic>) onGuardar,
   ) {
     String numArticulo = (articuloData['N_Articulo'] ?? articuloData['id'] ?? 'S/N').toString();
@@ -1143,16 +1125,13 @@ class _InformesScreenState extends State<InformesScreen> {
       },
     );
   }
+  
 
   // Modal: Lista de Agentes (API)
-  void _showSeleccionarAgentes(
-    BuildContext context,
-    TextEditingController controller,
-  ) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
+Future<void> _showSeleccionarAgentes(BuildContext context, TextEditingController controller) async {
+  await showDialog( 
+    context: context,
+    builder: (context) {
         return Dialog(
           backgroundColor: const Color(0xFFE0E0E0),
           shape: RoundedRectangleBorder(
@@ -1275,7 +1254,6 @@ class _InformesScreenState extends State<InformesScreen> {
 
                 const SizedBox(height: 20),
 
-                // Botón X (Cerrar)
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: const Icon(Icons.close, size: 50, color: Colors.black),
@@ -1288,6 +1266,253 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
+ void _showEditReportModal(Map<String, dynamic> report) {
+    final _calleCtrl = TextEditingController(text: report['Direccion']['Calle']);
+    final _coloniaCtrl = TextEditingController(text: report['Direccion']['Colonia']);
+    final _numExtCtrl = TextEditingController(text: report['Direccion']['Numero_Exterior']);
+    final _ciudadCtrl = TextEditingController(text: report['Direccion']['Ciudad']);
+    final _estadoCtrl = TextEditingController(text: report['Direccion']['Estado']);
+    final _paisCtrl = TextEditingController(text: report['Direccion']['Pais']);
+    final _descCtrl = TextEditingController(text: report['Descripcion']);
+
+    bool isActivo = report['Estatus'] == 'A';
+    
+    List<dynamic> editInvolucrados = List.from(report['Informe_Involucrados'] ?? []);
+    List<dynamic> editAgentes = List.from(report['Informe_Agentes'] ?? []);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            return AlertDialog(
+              title: Text('Editar Informe: (${report['Folio'] ?? report['_id']})'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // --- Estatus ---
+                    GestureDetector(
+                      onTap: () {
+                        setStateModal(() => isActivo = !isActivo);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(isActivo ? Icons.lock_open : Icons.lock, 
+                               color: isActivo ? Colors.green : Colors.red),
+                          const SizedBox(width: 8),
+                          Text(isActivo ? "Activo" : "Inactivo")
+                        ],
+                      ),
+                    ),
+                    const Divider(),
+                    
+                    // --- Campos de Texto ---
+                    TextField(controller: _calleCtrl, decoration: const InputDecoration(labelText: 'Calle')),
+                    TextField(controller: _numExtCtrl, decoration: const InputDecoration(labelText: 'Número Exterior')),
+                    TextField(controller: _coloniaCtrl, decoration: const InputDecoration(labelText: 'Colonia')),
+                    TextField(controller: _ciudadCtrl, decoration: const InputDecoration(labelText: 'Ciudad')),
+                    TextField(controller: _estadoCtrl, decoration: const InputDecoration(labelText: 'Estado')),
+                    TextField(controller: _paisCtrl, decoration: const InputDecoration(labelText: 'País')),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _descCtrl,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Descripción', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // ==================================================
+                    // SECCIÓN AGENTES
+                    // ==================================================
+                    Container(
+                      color: Colors.grey[200],
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Agentes", style: TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle, color: Colors.blue),
+                                onPressed: () async {
+                                  await _showSeleccionarAgentes(context, TextEditingController());
+                                  setStateModal(() {
+                                    if (_agentesSel.isNotEmpty) {
+                                      for (var item in _agentesSel) {
+                                        editAgentes.add({
+                                          'Num_Placa': item['Num_Placa'] ?? 'S/N',
+                                          'Nombre': item['Nombre'] 
+                                        });
+                                      }
+                                      _agentesSel.clear(); 
+                                    }
+                                  });
+                                }, 
+                              ),
+                            ],
+                          ),
+                          if (editAgentes.isEmpty) const Text("Sin agentes", style: TextStyle(color: Colors.grey)),
+                          ...editAgentes.asMap().entries.map((entry) {
+                            int idx = entry.key;
+                            var ag = entry.value;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                dense: true,
+                                title: Text("Placa: ${ag['Num_Placa']}"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                  onPressed: () {
+                                    setStateModal(() {
+                                      editAgentes.removeAt(idx);
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Container(
+
+                      color: Colors.grey[200], 
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Ciudadanos", style: TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle, color: Colors.green),
+                                onPressed: () async {
+                                  // Gracias a los cambios en el paso 1 y 2, este await ahora sí espera todo el proceso
+                                  await _showSeleccionarCiudadanos(context, TextEditingController());
+
+                                  setStateModal(() {
+                                    if (_involucradosSel.isNotEmpty) {
+                                      for (var item in _involucradosSel) {
+                                        List<dynamic> arts = [];
+                                        if (item['Articulos'] != null) {
+                                           arts = (item['Articulos'] as List).map((a) => {'Num_Art': a['N_Articulo']}).toList();
+                                        }
+
+                                        editInvolucrados.add({
+                                          'CURP': item['CURP'] ?? 'S/C',
+                                          'Id_Condena': item['Id_Condena'],
+                                          'Articulos': arts, 
+                                        });
+                                      }
+                                      _involucradosSel.clear(); 
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          if (editInvolucrados.isEmpty) const Text("Sin ciudadanos", style: TextStyle(color: Colors.grey)),
+                          ...editInvolucrados.asMap().entries.map((entry) {
+                            var inv = entry.value;
+                            int cantArticulos = (inv['Articulos'] is List) ? (inv['Articulos'] as List).length : 0;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.person),
+                                title: Text("CURP: ${inv['CURP']}"),
+                                subtitle: Text("Artículos: $cantArticulos"),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    _agentesSel.clear();
+                    _involucradosSel.clear();
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      // 1. Limpieza de Agentes
+                      List<Map<String, dynamic>> agentesApi = editAgentes.map((a) {
+                        return { 'Num_Placa': a['Num_Placa'].toString() };
+                      }).toList();
+
+                      // 2. Limpieza de Involucrados
+                      List<Map<String, dynamic>> involucradosApi = editInvolucrados.map((inv) {
+                        List<dynamic> rawArts = inv['Articulos'] ?? [];
+                        List<Map<String, dynamic>> artsApi = rawArts.map((art) {
+                           var valorArt = art['Num_Art'] ?? art['N_Articulo'];
+                           return { 'Num_Art': valorArt.toString() };
+                        }).toList();
+
+                        return {
+                          'CURP': inv['CURP'].toString(),
+                          'Articulos': artsApi,
+                          'Id_Condena': inv['Id_Condena'].toString(), 
+                        };
+                      }).toList();
+
+                      // 3. CONSTRUIR EL JSON (¡AQUÍ AGREGAMOS EL ID!)
+                      Map<String, dynamic> datosUpdate = {
+                        '_id': report['_id'],
+                        'Estatus': isActivo ? 'A' : 'C',
+                        'Fecha': report['Fecha'],
+                        'Descripcion': _descCtrl.text,
+                        'Direccion': {
+                            'Calle': _calleCtrl.text,
+                            'Colonia': _coloniaCtrl.text,
+                            'Numero_Ext': _numExtCtrl.text,
+                            'Ciudad': _ciudadCtrl.text,
+                            'Estado': _estadoCtrl.text,
+                            'Pais': _paisCtrl.text,
+                        },
+                        'Informe_Agentes': agentesApi,
+                        'Informe_Involucrados': involucradosApi,
+                        'Foto': report['Foto'] ?? [] // Mantenemos las fotos viejas para que no se borren
+                      };
+
+                      // 4. Enviar (Nota que ya no pasamos el ID como argumento separado, va dentro del mapa)
+                      await _updateReportApi(datosUpdate);
+
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                      
+                    } catch (e) {
+                      print("Error: $e");
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Guardar Cambios'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
   // Auxiliar para campos de solo lectura
   Widget _buildReadOnlyField(String text) {
     return Container(
@@ -1604,9 +1829,7 @@ class _InformesScreenState extends State<InformesScreen> {
                               final c = informes[index];
                               return InfoCard(
                                 folio: c['_id'],
-                                estatus: c['Estatus'] == 'A'
-                                    ? 'Activo'
-                                    : 'Inactivo',
+                               estatus: c['Estatus'] == 'A' ? 'Activo' : 'Inactivo',
                                 fecha: c['Fecha_Informe'],
                                 calle:
                                     c['Direccion']['Calle'] ??
@@ -1629,6 +1852,15 @@ class _InformesScreenState extends State<InformesScreen> {
                                 involucrados: c['Informe_Involucrados'] ?? [],
                                 agentes: c['Informe_Agentes'] ?? [],
                                 fotos: c['Foto'] ?? [],
+                                onTap: () {
+                                // Limpiamos las listas globales de selección por seguridad antes de abrir
+                                setState(() {
+                                  _involucradosSel = [];
+                                  _agentesSel = [];
+                                });
+                                // Abrimos el modal de edición pasando el objeto completo 'c'
+                                _showEditReportModal(c);
+                              }
                               );
                             },
                           );
@@ -1695,6 +1927,7 @@ class InfoCard extends StatelessWidget {
   final List<dynamic> involucrados;
   final List<dynamic> agentes;
   final List<dynamic> fotos;
+  final VoidCallback onTap; // <--- NUEVO PARAMETRO
 
   const InfoCard({
     Key? key,
@@ -1711,98 +1944,16 @@ class InfoCard extends StatelessWidget {
     required this.involucrados,
     required this.agentes,
     required this.fotos,
+    required this.onTap, // <--- REQUERIDO
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final IconData statusIcon = estatus == 'Activo'
-        ? Icons.lock_open
-        : Icons.lock;
-
+    final IconData statusIcon = estatus == 'Activo' ? Icons.lock_open : Icons.lock;
     final Color statusColor = estatus == 'Activo' ? Colors.green : Colors.red;
 
     return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              title: Column(
-                children: [
-                  const Text(
-                    'Detalles del Informe',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const Divider(thickness: 2),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Informe: $folio'),
-                    const SizedBox(height: 10),
-                    Text('Estatus: $estatus'),
-                    const SizedBox(height: 10),
-                    Text('Fecha: $fecha'),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Dirección:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text('Calle: $calle'),
-                    Text('Número Exterior: $numeroExterior'),
-                    Text('Colonia: $colonia'),
-                    Text('Ciudad: $ciudad'),
-                    Text('Estado: $estado'),
-                    Text('País: $pais'),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Descripción:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(descripcion),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Involucrados:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    ...involucrados.map((inv) => Text('CURP: ${inv['CURP']}')),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Agentes:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    ...agentes.map((ag) => Text('Placa: ${ag['Num_Placa']}')),
-                    if (fotos.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Fotos:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      ...fotos.map((foto) => Text('URL: ${foto['URL']}')),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cerrar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      onTap: onTap, // <--- AQUI EJECUTAMOS LA FUNCION DEL PADRE
       child: Card(
         elevation: 2.0,
         margin: const EdgeInsets.only(bottom: 16.0),
@@ -1825,11 +1976,7 @@ class InfoCard extends StatelessWidget {
                   children: [
                     Text(
                       'Folio: $folio',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.black,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
