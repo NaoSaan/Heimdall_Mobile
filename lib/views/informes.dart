@@ -19,6 +19,8 @@ class InformesScreen extends StatefulWidget {
 class _InformesScreenState extends State<InformesScreen> {
   TextEditingController _searchController = TextEditingController();
   late Future<List<dynamic>> _futureInformes;
+  List<Map<String, dynamic>> _involucradosSel = [];
+  List<Map<String, dynamic>> _agentesSel = [];
 
   Future<List<dynamic>> fetchInformesFil(String filtro) async {
     final response = await http.get(
@@ -77,7 +79,7 @@ class _InformesScreenState extends State<InformesScreen> {
     }
   }
 
-   // --- Función para obtener ciudadanos de la API ---
+  // --- Función para obtener ciudadanos de la API ---
   Future<List<dynamic>> fetchCiudadanos() async {
     final response = await http.get(
       Uri.parse('https://heimdall-qxbv.onrender.com/api/ciudadanos/all'),
@@ -91,7 +93,7 @@ class _InformesScreenState extends State<InformesScreen> {
     }
   }
 
-// --- Función para obtener Artículos del Código Penal ---
+  // --- Función para obtener Artículos del Código Penal ---
   Future<List<dynamic>> fetchArticulos() async {
     // CORRECCIÓN: Actualizamos la ruta a 'codigopenal/all'
     final response = await http.get(
@@ -103,6 +105,71 @@ class _InformesScreenState extends State<InformesScreen> {
       return jsonDecode(response.body);
     } else {
       throw Exception('Error al cargar artículos');
+    }
+  }
+
+  // --- NUEVO: Función para obtener Tipos de Condena ---
+  Future<List<dynamic>> fetchTiposCondena() async {
+    final response = await http.get(
+      Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/tipos/all'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Error al cargar tipos de condena');
+    }
+  }
+
+  // --- Función para Actualizar Informe ---
+Future<void> _updateReportApi(Map<String, dynamic> datosActualizados) async {
+  // 1. La URL debe ser EXACTAMENTE la que tienes en el backend (/update)
+  final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/informes/update'); 
+  
+  print("Enviando a: $url");
+  print("Datos: ${jsonEncode(datosActualizados)}");
+
+  final response = await http.put( 
+    url,
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode(datosActualizados),
+  );
+
+  if (response.statusCode == 200 || response.statusCode == 201) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Informe actualizado correctamente'), backgroundColor: Colors.green)
+    );
+    setState(() {
+      // Forzar actualización visual
+    });
+  } else {
+    throw Exception('Error servidor (${response.statusCode}): ${response.body}');
+  }
+}
+
+  // --- Funcion para idcondenas
+  Future<Map<String,dynamic>> fetchIdcondena(String Fecha_I, String Duracion, String Importe, String Estatus, String id_tipocondenaFK, String curpFK) async {
+    final url = Uri.parse('https://heimdall-qxbv.onrender.com/api/condenas/add');
+    final body = {
+      'Fecha_I': Fecha_I,
+      'Duracion': Duracion,
+      'Importe': Importe,
+      'Estatus': Estatus,
+      'id_tipocondenaFK': id_tipocondenaFK,
+      'curpFK': curpFK
+    };
+    print("BODY: ${jsonEncode(body)}");
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Error al generar idcondena');
     }
   }
 
@@ -184,32 +251,64 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                     ),
                     // --- Campos del Formulario ---
-                    TextField(controller: _calleController, decoration: const InputDecoration(labelText: 'Calle')),
-                    TextField(controller: _coloniaController, decoration: const InputDecoration(labelText: 'Colonia')),
-                    TextField(controller: _numeroExteriorController, decoration: const InputDecoration(labelText: 'Número Exterior')),
-                    TextField(controller: _ciudadController, decoration: const InputDecoration(labelText: 'Ciudad')),
-                    TextField(controller: _estadoController, decoration: const InputDecoration(labelText: 'Estado')),
-                    TextField(controller: _paisController, decoration: const InputDecoration(labelText: 'País')),
+                    TextField(
+                      controller: _calleController,
+                      decoration: const InputDecoration(labelText: 'Calle'),
+                    ),
+                    TextField(
+                      controller: _coloniaController,
+                      decoration: const InputDecoration(labelText: 'Colonia'),
+                    ),
+                    TextField(
+                      controller: _numeroExteriorController,
+                      decoration: const InputDecoration(
+                        labelText: 'Número Exterior',
+                      ),
+                    ),
+                    TextField(
+                      controller: _ciudadController,
+                      decoration: const InputDecoration(labelText: 'Ciudad'),
+                    ),
+                    TextField(
+                      controller: _estadoController,
+                      decoration: const InputDecoration(labelText: 'Estado'),
+                    ),
+                    TextField(
+                      controller: _paisController,
+                      decoration: const InputDecoration(labelText: 'País'),
+                    ),
                     const SizedBox(height: 15),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[300], // Color verde similar al boton '+' de la imagen
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors
+                              .green[300], // Color verde similar al boton '+' de la imagen
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
                           ),
-                          onPressed: () {
-                            _showInvolucradosDialog(
-                              context,
-                              _involucradosController,
-                              _agentesController,
-                            );
-                          },
-                          child: const Text('Gestionar informe', style: TextStyle(color: Colors.white)),
+                        ),
+                        onPressed: () {
+                          // Llamamos a la nueva ventana pasando los controladores
+                          _showInvolucradosDialog(
+                            context,
+                            _involucradosController,
+                            _agentesController
+                          );
+                        },
+                        child: const Text(
+                          'Gestionar informe',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
-                    
-                    TextField(controller: _descripcionController, decoration: const InputDecoration(labelText: 'Descripción')),
+                    ),
+
+                    TextField(
+                      controller: _descripcionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Descripción',
+                      ),
+                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -229,9 +328,9 @@ class _InformesScreenState extends State<InformesScreen> {
                       estado: _estadoController.text,
                       pais: _paisController.text,
                       descripcion: _descripcionController.text,
-                      involucrados: _involucradosController.text, // Pasar valor
-                      agentes: _agentesController.text, // Pasar valor
-                      fotos: _selectedImages,
+                      involucrados: _involucradosSel,
+                      agentes: _agentesSel,
+                      fotos: [],
                       isActivo: isActivo, // Pasa el estado del candado
                     );
                     Navigator.of(context).pop();
@@ -246,27 +345,28 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // función para mostrar el diálogo de involucrados
-  
+  // Nueva función para mostrar el diálogo de involucrados
   void _showInvolucradosDialog(
-      BuildContext context,
-      TextEditingController involucradosCtrl,
-      TextEditingController agentesCtrl) { // <--- Ya no pedimos descripcionCtrl
-    
+    BuildContext context,
+    TextEditingController involucradosCtrl,
+    TextEditingController agentesCtrl,
+    // descripcionCtrl FUE ELIMINADO DE AQUÍ
+  ) {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, 
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFFE0E0E0),
+          backgroundColor: const Color(0xFFE0E0E0), 
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
+            borderRadius: BorderRadius.circular(30.0), 
           ),
           child: Container(
-            height: 500, // <--- Ajusté un poco la altura ya que quitamos un elemento
+            height: 600, 
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               children: [
+                // "Notch" decorativo superior
                 Container(
                   width: 60,
                   height: 6,
@@ -285,26 +385,28 @@ class _InformesScreenState extends State<InformesScreen> {
                         _buildEstiloTarjeta(
                           label: "Lista de Involucrados",
                           controller: involucradosCtrl,
-                          maxLines: 6, // Aumenté líneas para ver mejor el detalle
-                          icon: Icons.add,
+                          icon: Icons.add, 
                           onIconPressed: () {
-                            _showSeleccionarCiudadanos(context, involucradosCtrl);
+                            _showSeleccionarCiudadanos(
+                              context,
+                              involucradosCtrl,
+                            );
                           },
                         ),
                         const SizedBox(height: 15),
 
                         // --- Tarjeta 2: Lista de Agentes ---
-                       _buildEstiloTarjeta(
+                        _buildEstiloTarjeta(
                           label: "Lista de Agentes\nInvolucrados",
                           controller: agentesCtrl,
-                          maxLines: 4,
-                          icon: Icons.add,
+                          maxLines: 4, 
+                          icon: Icons.add, 
                           onIconPressed: () {
                             _showSeleccionarAgentes(context, agentesCtrl);
                           },
                         ),
                         
-                        // --- SE ELIMINÓ LA TARJETA DE DESCRIPCIÓN AQUÍ ---
+                        
                       ],
                     ),
                   ),
@@ -312,13 +414,13 @@ class _InformesScreenState extends State<InformesScreen> {
 
                 const SizedBox(height: 10),
 
-                // --- Botón Actualizar ---
+                // Botón Actualizar
                 SizedBox(
                   width: 200,
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4D7FF),
+                      backgroundColor: const Color(0xFFC4D7FF), 
                       foregroundColor: Colors.black,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -326,123 +428,21 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                     ),
                     onPressed: () {
-                      // Al hacer pop, los datos ya quedaron guardados en los controllers del padre
                       Navigator.of(context).pop(); 
                     },
                     child: const Text(
                       "Actualizar",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // --- Botón X (Cerrar) ---
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(
-                    Icons.close,
-                    size: 50,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // --- Nuevo Modal: Lista de Ciudadanos (API) ---
-  void _showSeleccionarCiudadanos(BuildContext context, TextEditingController controller) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: const Color(0xFFE0E0E0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
-          child: Container(
-            height: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              children: [
-                 // Notch
-                Container(
-                  width: 60, height: 6,
-                  decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
-                ),
-                const SizedBox(height: 20),
-                
-                // Título
-                const Text("Seleccionar Ciudadano", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-
-                // --- Contenedor Blanco con la Lista ---
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: FutureBuilder<List<dynamic>>(
-                      future: fetchCiudadanos(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        } else if (snapshot.hasError) {
-                          return Center(child: Text("Error: ${snapshot.error}"));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text("No hay ciudadanos registrados."));
-                        }
-
-                        final ciudadanos = snapshot.data!;
-                        
-                        return ListView.separated(
-                          itemCount: ciudadanos.length,
-                          separatorBuilder: (_, __) => const Divider(),
-                          itemBuilder: (context, index) {
-                          final c = ciudadanos[index];
-                          
-                          // CORRECCIÓN 1: Manejo de nulos para evitar "Luis null null"
-                          // Si el dato es null, usamos una cadena vacía ''
-                          String nombrePila = c['Nombre'] ?? '';
-                          String paterno = c['Apellido_Paterno'] ?? '';
-                          String materno = c['Apellido_Materno'] ?? '';
-                          
-                          // .trim() elimina espacios extra si falta algún apellido
-                          final nombreCompleto = "$nombrePila $paterno $materno".trim();
-                          
-                          final curp = c['CURP'] ?? 'Sin CURP';
-
-                          return ListTile(
-                            leading: const Icon(Icons.person, color: Colors.blueGrey),
-                            title: Text(nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text(curp),
-                            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                            onTap: () {
-                              
-                              Navigator.of(context).pop();
-                              _showDetalleInvolucrado(context, c, controller);
-                            },
-                          );
-                        },
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-                
-                // Botón X (Cerrar)
+                // Botón X para cerrarr
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: const Icon(Icons.close, size: 50, color: Colors.black),
@@ -455,43 +455,158 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-  // --- Nuevo Modal: Detalle Involucrado (Diseño Image) ---
-  void _showDetalleInvolucrado(BuildContext context, Map<String, dynamic> ciudadano, TextEditingController controllerParent) {
+  // Modal: Lista de Ciudadanos (API) - CORREGIDO PARA UPDATE
+ Future<void> _showSeleccionarCiudadanos(BuildContext context, TextEditingController controller) async {
+  
+  // Variable temporal para capturar la selección
+  Map<String, dynamic>? ciudadanoSeleccionado;
+
+  await showDialog( 
+    context: context,
+    builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFFE0E0E0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30.0),
+          ),
+          child: Container(
+            height: 600,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Seleccionar Ciudadano",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: FutureBuilder<List<dynamic>>(
+                      future: fetchCiudadanos(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(child: Text("Error: ${snapshot.error}"));
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(child: Text("No hay ciudadanos registrados."));
+                        }
+
+                        final ciudadanos = snapshot.data!;
+
+                        return ListView.separated(
+                          itemCount: ciudadanos.length,
+                          separatorBuilder: (_, __) => const Divider(),
+                          itemBuilder: (context, index) {
+                            final c = ciudadanos[index];
+                            String nombrePila = c['Nombre'] ?? '';
+                            String paterno = c['Apellido_Paterno'] ?? '';
+                            String materno = c['Apellido_Materno'] ?? '';
+                            final nombreCompleto = "$nombrePila $paterno $materno".trim();
+                            final curp = c['CURP'] ?? 'Sin CURP';
+
+                            return ListTile(
+                              leading: const Icon(Icons.person, color: Colors.blueGrey),
+                              title: Text(nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text(curp),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                              onTap: () {
+                                // 1. Guardamos la selección
+                                ciudadanoSeleccionado = c;
+                                // 2. Cerramos SOLAMENTE la lista (para abrir la siguiente ventana desde el flujo principal)
+                                Navigator.of(context).pop();
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Icon(Icons.close, size: 50, color: Colors.black),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // 3. Si se seleccionó alguien, abrimos la ventana de detalles y ESPERAMOS (await) a que termine
+    if (ciudadanoSeleccionado != null) {
+      await _showDetalleInvolucrado(context, ciudadanoSeleccionado!, controller);
+    }
+  }
+
+ // Modal: Detalle Involucrado (AHORA ES Future<void>)
+  Future<void> _showDetalleInvolucrado(
+    BuildContext context,
+    Map<String, dynamic> ciudadano,
+    TextEditingController controllerParent,
+  ) async { 
+    // Preparamos los datos limpios
     String nombre = ciudadano['Nombre'] ?? '';
     String paterno = ciudadano['Apellido_Paterno'] ?? '';
     String materno = ciudadano['Apellido_Materno'] ?? '';
     String nombreCompleto = "$nombre $paterno $materno".trim();
     String curp = ciudadano['CURP'] ?? 'Sin CURP';
 
-    List<String> articulosLocales = []; 
+    List<Map<String, dynamic>> articulosLocales = [];
 
-    showDialog(
+    // <--- AGREGADO await
+    await showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Usamos StatefulBuilder para poder actualizar la lista de artículos dentro del modal
         return StatefulBuilder(
           builder: (context, setStateModal) {
             return Dialog(
-              backgroundColor: const Color(0xFFE0E0E0), // Fondo gris claro
+              backgroundColor: const Color(0xFFE0E0E0),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30.0),
               ),
               child: Container(
-                height: 650, 
+                height: 650,
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Notch decorativo
                     Container(
-                      width: 60, height: 6,
-                      decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                      width: 60,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[400],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     const SizedBox(height: 20),
 
-                    // --- Campo CURP (Solo lectura) ---
+                    // Campo CURP
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 15,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(25),
@@ -499,17 +614,29 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text("Curp Ciudadano", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text(curp, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Curp Ciudadano",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            curp,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 10),
 
-                    // --- Campo Nombre (Solo lectura) ---
+                    // Campo Nombre
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 15,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(25),
@@ -517,14 +644,23 @@ class _InformesScreenState extends State<InformesScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text("Nombre Ciudadano", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text(nombreCompleto, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          const Text(
+                            "Nombre Ciudadano",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            nombreCompleto,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
 
-                    // --- Caja Grande: Lista de Artículos ---
+                    // Lista de Artículos
                     Expanded(
                       child: Stack(
                         children: [
@@ -540,29 +676,43 @@ class _InformesScreenState extends State<InformesScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Center(
-                                  child: Text("Lista de artículos", style: TextStyle(fontSize: 16, color: Colors.black87)),
+                                  child: Text(
+                                    "Lista de artículos",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
                                 ),
                                 const Divider(),
                                 Expanded(
-                                  child: articulosLocales.isEmpty 
-                                  ? const Center(child: Text("Sin artículos", style: TextStyle(color: Colors.grey)))
-                                  : ListView.builder(
-                                      itemCount: articulosLocales.length,
-                                      itemBuilder: (ctx, idx) => Text("- ${articulosLocales[idx]}"),
-                                    ),
+                                  child: articulosLocales.isEmpty
+                                      ? const Center(
+                                          child: Text(
+                                            "Sin artículos",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          itemCount: articulosLocales.length,
+                                          itemBuilder: (ctx, idx) {
+                                            final art = articulosLocales[idx];
+                                            final titulo = "Art. ${art['N_Articulo']} - ${art['NombreArt']}";
+                                            return Text("- $titulo");
+                                          },
+                                        ),
                                 ),
                               ],
                             ),
                           ),
-                          // Botón flotante "+" dentro de la caja blanca
                           Positioned(
                             right: 10,
                             top: 10,
                             child: GestureDetector(
                               onTap: () {
-                                // MODIFICACIÓN: Llamar al modal de Selección de Artículos
                                 _showSeleccionarArticulos(context, (nuevoArticulo) {
-                                  // Esta función se ejecuta cuando el usuario elige un artículo
                                   setStateModal(() {
                                     articulosLocales.add(nuevoArticulo);
                                   });
@@ -571,68 +721,131 @@ class _InformesScreenState extends State<InformesScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFFA5F2C8), // Verde pastel
+                                  color: Color(0xFFA5F2C8),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.add, color: Colors.black54),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Colors.black54,
+                                ),
                               ),
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // --- Botón Agregar Involucrados (Verde Grande) ---
+                    // Botón Agregar Involucrados
                     SizedBox(
                       width: 200,
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFA5F2C8), // Verde similar a la imagen
+                          backgroundColor: const Color(0xFFA5F2C8),
                           foregroundColor: Colors.black,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        onPressed: () {
-                        // 1. Recopilar texto existente en el controlador padre
-                        String textoPrevio = controllerParent.text;
-                        
-                        // 2. Construir la cadena del nuevo ciudadano con sus artículos
-                        // Formato: "JUAN PEREZ (CURP123) [Articulo1, Articulo2]"
-                        String articulosString = articulosLocales.isEmpty 
-                            ? "Sin artículos" 
-                            : articulosLocales.join(" / ");
+                        onPressed: () async {
+                          if (articulosLocales.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Debe agregar al menos un artículo.'), backgroundColor: Colors.red,
+                            ));
+                            return;
+                          }
 
-                        String nuevoRegistro = "$nombreCompleto ($curp)\n   -> Delitos: $articulosString";
+                          double totalImporte = 0.0;
+                          double totalDuracion = 0.0;
+                          String idCondenaSeleccionada = '5';
+                          String nombreCondenaLog = '';
 
-                        // 3. Unir con lo que ya había
-                        if (textoPrevio.isNotEmpty) {
-                          controllerParent.text = "$textoPrevio\n\n$nuevoRegistro";
-                        } else {
-                          controllerParent.text = nuevoRegistro;
-                        }
+                          if (articulosLocales.isNotEmpty) {
+                              for (var art in articulosLocales) {
+                                  double importe = double.tryParse(art['Importe']?.toString() ?? '0') ?? 0.0;
+                                  totalImporte += importe;
+                                  double duracion = double.tryParse(art['Tiempo']?.toString() ?? '0') ?? 0.0;
+                                  totalDuracion += duracion;
+                              }
+                              
+                              if (articulosLocales.first.containsKey('condenaId')) {
+                                  idCondenaSeleccionada = articulosLocales.first['condenaId'].toString();
+                                  nombreCondenaLog = articulosLocales.first['condenaNombre'].toString();
+                              }
+                          }
 
-                        // 4. Cerrar el modal
-                        Navigator.of(context).pop(); 
-                       
-                      },
+                          String duracionFinal = totalDuracion > 0 ? totalDuracion.toString() : "0";
+                          String fechaI = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                          String importeStr = totalImporte.toString();
+                          String curp = ciudadano['CURP'] ?? '';
+
+                          int? idCondenaGenerado;
+
+                          try {
+                              var respuesta = await fetchIdcondena(
+                                  fechaI,
+                                  duracionFinal,
+                                  importeStr,
+                                  'P',
+                                  idCondenaSeleccionada,
+                                  curp,
+                              );
+
+                              if (respuesta.isNotEmpty && respuesta.containsKey('ID_Condena')) {
+                                  idCondenaGenerado = respuesta['ID_Condena'];
+                              } else if (respuesta.isNotEmpty && respuesta.containsKey('id')) {
+                                  idCondenaGenerado = respuesta['id'];
+                              }
+                          } catch (e) {
+                              print("Error generando condena: $e");
+                          }
+
+                          String textoPrevio = controllerParent.text;
+                          String articulosString = articulosLocales
+                              .map((a) => "Art. ${a['N_Articulo']} - ${a['NombreArt']}")
+                              .join(" / ");
+
+                          String nuevoRegistro = "$nombreCompleto ($curp)\n   -> Delitos: $articulosString";
+
+                          if (textoPrevio.isNotEmpty) {
+                            controllerParent.text = "$textoPrevio\n\n$nuevoRegistro";
+                          } else {
+                            controllerParent.text = nuevoRegistro;
+                          }
+
+                          setState(() {
+                            _involucradosSel.add({
+                              'CURP': curp,
+                              'Articulos': articulosLocales,
+                              'Nombre': nombreCompleto,
+                              'Id_Condena': idCondenaGenerado,
+                            });
+                          });
+
+                          Navigator.of(context).pop();
+                        },
                         child: const Text(
                           "Agregar\nInvolucrados",
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 10),
 
-                    // --- Botón X (Cerrar) ---
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: const Icon(Icons.close, size: 40, color: Colors.black),
+                      child: const Icon(
+                        Icons.close,
+                        size: 40,
+                        color: Colors.black,
+                      ),
                     ),
                   ],
                 ),
@@ -644,126 +857,180 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
-// --- Nuevo Modal: Lista de Artículos (API) ---
-  void _showSeleccionarArticulos(BuildContext context, Function(String) onArticuloSelected) {
+  // Modal: Lista de Artículos (API) ---
+  void _showSeleccionarArticulos(
+    BuildContext context,
+    Function(Map<String, dynamic>) onArticuloSelected,
+  ) {
+    String? selectedCondenaId;
+    String? selectedCondenaNombre;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: const Color(0xFFE0E0E0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30.0),
-          ),
-          child: Container(
-            height: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              children: [
-                // Notch
-                Container(
-                  width: 60, height: 6,
-                  decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
-                ),
-                const SizedBox(height: 20),
-
-                // Título
-                const Text("Seleccionar Artículo", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-
-                // --- Contenedor Blanco con la Lista ---
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.grey.shade300),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFFE0E0E0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30.0),
+              ),
+              child: Container(
+                height: 650,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 60, height: 6,
+                      decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: FutureBuilder<List<dynamic>>(
-                      future: fetchArticulos(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        } else if (snapshot.hasError) {
-                          return Center(child: Text("Error: ${snapshot.error}"));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text("No hay artículos registrados."));
-                        }
+                    const SizedBox(height: 20),
 
-                        final articulos = snapshot.data!;
+                    const Text("Seleccionar Condena y Artículo", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
 
-                        return ListView.separated(
-                          itemCount: articulos.length,
-                          separatorBuilder: (_, __) => const Divider(),
-                          itemBuilder: (context, index) {
-                            final a = articulos[index];
+                    // Dropdown de Tipos de Condena
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: FutureBuilder<List<dynamic>>(
+                        future: fetchTiposCondena(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) return const Text("Error cargando condenas");
+                          if (!snapshot.hasData) return const SizedBox(height: 50, child: Center(child: CircularProgressIndicator()));
 
-                            // CORRECCIÓN: Búsqueda robusta de datos
-                            // 1. Intentamos obtener el NUMERO del artículo (puede venir como 'Articulo', 'id', etc.)
-                            String numArticulo = (a['N_Articulo'] ?? a['N_Articulo']).toString();
-                            
-                            // 2. Intentamos obtener el NOMBRE o DESCRIPCIÓN (puede venir como 'Nombre', 'Delito', etc.)
-                            String nombre = a['NombreArt'] ?? a['NombreArt'] ?? a['Delito'] ?? a['delito'] ?? 'Sin Nombre';
-                            
-                            // 3. Creamos el título combinado
-                            String tituloMostrado = "Art. $numArticulo - $nombre";
+                          final condenas = snapshot.data!;
+                          List<DropdownMenuItem<String>> menuItems = [];
 
-                            return ListTile(
-                              leading: const Icon(Icons.gavel, color: Colors.blueGrey), // Icono de mazo legal
-                              title: Text(
-                                tituloMostrado, 
-                                style: const TextStyle(fontWeight: FontWeight.bold)
-                              ),
-                              // Si hay una descripción extra larga, la ponemos abajo, si no, no ponemos nada
-                              subtitle: a['Descripcion'] != null 
-                                  ? Text(a['Descripcion'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis) 
-                                  : null,
-                              trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
-                              onTap: () {
-                                Navigator.of(context).pop(); 
+                          for (var c in condenas) {
+                            // Usamos las llaves exactas de tu JSON: 'ID_TipoCondena' y 'Tipo'
+                            String id = c['ID_TipoCondena']?.toString() ?? UniqueKey().toString();
+                            String nombre = c['Tipo']?.toString() ?? 'Sin Tipo';
 
-                                // Pasamos el objeto 'a' completo al siguiente modal
-                                _showDetalleArticulo(context, a, (infoCompleta) {
-                                  onArticuloSelected(infoCompleta);
+                            // Evitar duplicados visuales
+                            if (!menuItems.any((item) => item.value == id)) {
+                              menuItems.add(DropdownMenuItem<String>(
+                                value: id,
+                                onTap: () => selectedCondenaNombre = nombre,
+                                child: Text(nombre, overflow: TextOverflow.ellipsis),
+                              ));
+                            }
+                          }
+
+                          return DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              hint: const Text("Seleccione Tipo de Condena"),
+                              value: selectedCondenaId,
+                              items: menuItems,
+                              onChanged: (valor) {
+                                setState(() {
+                                  selectedCondenaId = valor;
                                 });
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    //  Lista de Artículos
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: FutureBuilder<List<dynamic>>(
+                          future: fetchArticulos(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                            if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("No hay artículos registrados."));
+
+                            final articulos = snapshot.data!;
+
+                            return ListView.separated(
+                              itemCount: articulos.length,
+                              separatorBuilder: (_, __) => const Divider(),
+                              itemBuilder: (context, index) {
+                                final a = articulos[index];
+                                String numArticulo = (a['N_Articulo'] ?? a['N_Articulo']).toString();
+                                String nombre = a['NombreArt'] ?? a['Delito'] ?? 'Sin Nombre';
+                                String tituloMostrado = "Art. $numArticulo - $nombre";
+
+                                return ListTile(
+                                  leading: const Icon(Icons.gavel, color: Colors.blueGrey),
+                                  title: Text(tituloMostrado, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: a['Descripcion'] != null 
+                                      ? Text(a['Descripcion'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis) 
+                                      : null,
+                                  trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
+                                  onTap: () {
+                                    // VALIDACIÓN: Obligar a seleccionar el tipo de condena condena
+                                    if (selectedCondenaId == null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Por favor, selecciona primero un Tipo de Condena.")));
+                                      return;
+                                    }
+
+                                    Navigator.of(context).pop();
+
+                                    // Pasamos el objeto artículo + ID Condena + Nombre Condena
+                                    _showDetalleArticulo(
+                                      context, 
+                                      a, 
+                                      selectedCondenaId!,        // Se pasa el ID
+                                      selectedCondenaNombre!,    // Se pasa el nombre
+                                      (infoCompleta) {
+                                        onArticuloSelected(infoCompleta);
+                                      }
+                                    );
+                                  },
+                                );
                               },
                             );
                           },
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const Icon(Icons.close, size: 50, color: Colors.black),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 20),
-
-                // Botón X (Cerrar)
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.close, size: 50, color: Colors.black),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
- // --- Nuevo Modal: Detalle Específico del Artículo (Solo lectura Importe) ---
-  void _showDetalleArticulo(BuildContext context, Map<String, dynamic> articuloData, Function(String) onGuardar) {
-    
-    // Obtener datos
-    String numArticulo = (articuloData['N_Articulo'] ?? articuloData['articulo'] ?? articuloData['id'] ?? 'S/N').toString();
-    String nombreArticulo = articuloData['NombreArt'] ?? articuloData['nombre'] ?? articuloData['Delito'] ?? 'Sin Nombre';
-    String descripcionBase = articuloData['Descripcion'] ?? articuloData['descripcion'] ?? '';
-    
-    // NUEVO: Obtener importe fijo
-    String importeFijo = (articuloData['Importe'] ?? articuloData['importe'] ?? articuloData['Multa'] ?? '0').toString();
+  // Modal: Detalle Específico del Artículo (Solo lectura Importe)
+  void _showDetalleArticulo(
+    BuildContext context,
+    Map<String, dynamic> articuloData,
+    String condenaId,     
+    String condenaNombre,  
+    Function(Map<String, dynamic>) onGuardar,
+  ) {
+    String numArticulo = (articuloData['N_Articulo'] ?? articuloData['id'] ?? 'S/N').toString();
+    String nombreArticulo = articuloData['NombreArt'] ?? articuloData['Delito'] ?? 'Sin Nombre';
+    String descripcionBase = articuloData['Descripcion'] ?? '';
+    String importeFijo = (articuloData['Importe'] ?? articuloData['Multa'] ?? '0').toString();
 
-    // Solo queda editable el tiempo y la descripción
     final TextEditingController _tiempoCtrl = TextEditingController();
     final TextEditingController _descCtrl = TextEditingController(text: descripcionBase);
 
@@ -779,86 +1046,77 @@ class _InformesScreenState extends State<InformesScreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  Container(
-                    width: 60, height: 6,
-                    decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
-                  ),
+                  Container(width: 60, height: 6, decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10))),
                   const SizedBox(height: 20),
 
-                  // 1. Número de Artículo (Solo lectura)
+                  // Visualización de la Condena Seleccionada
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text("Tipo de Condena Aplicada", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(condenaNombre, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue)),
+                      ],
+                    ),
+                  ),
+
                   _buildReadOnlyField("Número de Artículo: $numArticulo"),
                   const SizedBox(height: 10),
-
-                  // 2. Nombre Artículo (Solo lectura)
                   _buildReadOnlyField("Nombre: $nombreArticulo"),
                   const SizedBox(height: 10),
-
-                  // 3. Importe (CAMBIO: AHORA ES SOLO LECTURA)
                   _buildReadOnlyField("Importe: \$$importeFijo"),
                   const SizedBox(height: 10),
-
-                  // 4. Tiempo Condena (Sigue siendo editable)
                   _buildEditableField("Tiempo Condena", _tiempoCtrl),
                   const SizedBox(height: 10),
 
-                  // 5. Descripción
                   Container(
-                    height: 150,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
+                    height: 150, width: double.infinity, padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.grey.shade300)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text("Descripción", style: TextStyle(color: Colors.grey, fontSize: 12)),
                         Expanded(
-                          child: TextField(
-                            controller: _descCtrl,
-                            maxLines: 5,
-                            decoration: const InputDecoration(border: InputBorder.none),
-                          ),
+                          child: TextField(controller: _descCtrl, maxLines: 5, decoration: const InputDecoration(border: InputBorder.none)),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // Botón Agregar
                   SizedBox(
-                    width: 200,
-                    height: 50,
+                    width: 200, height: 50,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFA5F2C8),
-                        foregroundColor: Colors.black,
+                        backgroundColor: const Color(0xFFA5F2C8), foregroundColor: Colors.black,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                       ),
                       onPressed: () {
-                        // Armamos la cadena final usando el importe fijo
-                        String infoFinal = "$nombreArticulo (Art. $numArticulo)";
-                        
-                        // Agregamos el importe fijo
-                        infoFinal += " - Importe: \$$importeFijo";
-
-                        // Agregamos tiempo si se escribió algo
-                        if (_tiempoCtrl.text.isNotEmpty) infoFinal += " - Tiempo: ${_tiempoCtrl.text}";
-                        
-                        onGuardar(infoFinal);
+                        final art = {
+                          'N_Articulo': numArticulo,
+                          'NombreArt': nombreArticulo,
+                          'Importe': importeFijo,
+                          'Tiempo': _tiempoCtrl.text,
+                          'Descripcion': _descCtrl.text,
+                          // Guardamos el ID de la condena aquí también
+                          'condenaId': condenaId, 
+                          'condenaNombre': condenaNombre
+                        };
+                        onGuardar(art);
                         Navigator.of(context).pop();
                       },
                       child: const Text("Agregar Artículo", style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: const Icon(Icons.close, size: 40, color: Colors.black),
-                  ),
+                  GestureDetector(onTap: () => Navigator.of(context).pop(), child: const Icon(Icons.close, size: 40, color: Colors.black)),
                 ],
               ),
             ),
@@ -867,13 +1125,13 @@ class _InformesScreenState extends State<InformesScreen> {
       },
     );
   }
+  
 
-  // --- Nuevo Modal: Lista de Agentes (API) ---
-  void _showSeleccionarAgentes(BuildContext context, TextEditingController controller) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
+  // Modal: Lista de Agentes (API)
+Future<void> _showSeleccionarAgentes(BuildContext context, TextEditingController controller) async {
+  await showDialog( 
+    context: context,
+    builder: (context) {
         return Dialog(
           backgroundColor: const Color(0xFFE0E0E0),
           shape: RoundedRectangleBorder(
@@ -886,16 +1144,23 @@ class _InformesScreenState extends State<InformesScreen> {
               children: [
                 // Notch
                 Container(
-                  width: 60, height: 6,
-                  decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(10)),
+                  width: 60,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 // Título
-                const Text("Seleccionar Agente", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Seleccionar Agente",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
 
-                // --- Lista de Agentes ---
+                //  Lista de Agentes 
                 Expanded(
                   child: Container(
                     width: double.infinity,
@@ -908,12 +1173,20 @@ class _InformesScreenState extends State<InformesScreen> {
                     child: FutureBuilder<List<dynamic>>(
                       future: fetchAgentes(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
                         } else if (snapshot.hasError) {
-                          return Center(child: Text("Error: ${snapshot.error}"));
-                        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text("No hay agentes disponibles."));
+                          return Center(
+                            child: Text("Error: ${snapshot.error}"),
+                          );
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: Text("No hay agentes disponibles."),
+                          );
                         }
 
                         final agentes = snapshot.data!;
@@ -923,30 +1196,53 @@ class _InformesScreenState extends State<InformesScreen> {
                           separatorBuilder: (_, __) => const Divider(),
                           itemBuilder: (context, index) {
                             final a = agentes[index];
-                            
+
                             // Construimos nombre y placa de forma segura
                             String nombre = a['Nombre'] ?? '';
                             String paterno = a['Apellido_Paterno'] ?? '';
-                            String placa = a['N_Placa']?.toString() ?? 'Sin Placa';
+                            String placa =
+                                a['N_Placa']?.toString() ?? 'Sin Placa';
                             String nombreCompleto = "$nombre $paterno".trim();
 
                             return ListTile(
-                              leading: const Icon(Icons.badge, color: Colors.indigo), // Icono de placa
-                              title: Text(nombreCompleto, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              leading: const Icon(
+                                Icons.badge,
+                                color: Colors.indigo,
+                              ), // Icono de placa
+                              title: Text(
+                                nombreCompleto,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               subtitle: Text("Placa: $placa"),
-                              trailing: const Icon(Icons.add_circle_outline, color: Colors.green),
+                              trailing: const Icon(
+                                Icons.add_circle_outline,
+                                color: Colors.green,
+                              ),
                               onTap: () {
                                 // Lógica para agregar al input sin borrar lo anterior
-                                String nuevoAgente = "$nombreCompleto (Placa: $placa)";
+                                String nuevoAgente =
+                                    "$nombreCompleto (Placa: $placa)";
                                 String textoActual = controller.text;
 
                                 if (textoActual.isNotEmpty) {
-                                  controller.text = "$textoActual\n$nuevoAgente";
+                                  controller.text =
+                                      "$textoActual\n$nuevoAgente";
                                 } else {
                                   controller.text = nuevoAgente;
                                 }
-                                
-                                Navigator.of(context).pop(); // Cierra el modal tras seleccionar
+
+                                setState(() {
+                                  _agentesSel.add({
+                                    'Num_Placa': placa,
+                                    'Nombre': nombreCompleto,
+                                  });
+                                });
+
+                                Navigator.of(
+                                  context,
+                                ).pop(); // Cierra el modal tras seleccionar
                               },
                             );
                           },
@@ -958,7 +1254,6 @@ class _InformesScreenState extends State<InformesScreen> {
 
                 const SizedBox(height: 20),
 
-                // Botón X (Cerrar)
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: const Icon(Icons.close, size: 50, color: Colors.black),
@@ -971,6 +1266,253 @@ class _InformesScreenState extends State<InformesScreen> {
     );
   }
 
+ void _showEditReportModal(Map<String, dynamic> report) {
+    final _calleCtrl = TextEditingController(text: report['Direccion']['Calle']);
+    final _coloniaCtrl = TextEditingController(text: report['Direccion']['Colonia']);
+    final _numExtCtrl = TextEditingController(text: report['Direccion']['Numero_Exterior']);
+    final _ciudadCtrl = TextEditingController(text: report['Direccion']['Ciudad']);
+    final _estadoCtrl = TextEditingController(text: report['Direccion']['Estado']);
+    final _paisCtrl = TextEditingController(text: report['Direccion']['Pais']);
+    final _descCtrl = TextEditingController(text: report['Descripcion']);
+
+    bool isActivo = report['Estatus'] == 'A';
+    
+    List<dynamic> editInvolucrados = List.from(report['Informe_Involucrados'] ?? []);
+    List<dynamic> editAgentes = List.from(report['Informe_Agentes'] ?? []);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            return AlertDialog(
+              title: Text('Editar Informe: (${report['Folio'] ?? report['_id']})'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // --- Estatus ---
+                    GestureDetector(
+                      onTap: () {
+                        setStateModal(() => isActivo = !isActivo);
+                      },
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(isActivo ? Icons.lock_open : Icons.lock, 
+                               color: isActivo ? Colors.green : Colors.red),
+                          const SizedBox(width: 8),
+                          Text(isActivo ? "Activo" : "Inactivo")
+                        ],
+                      ),
+                    ),
+                    const Divider(),
+                    
+                    // --- Campos de Texto ---
+                    TextField(controller: _calleCtrl, decoration: const InputDecoration(labelText: 'Calle')),
+                    TextField(controller: _numExtCtrl, decoration: const InputDecoration(labelText: 'Número Exterior')),
+                    TextField(controller: _coloniaCtrl, decoration: const InputDecoration(labelText: 'Colonia')),
+                    TextField(controller: _ciudadCtrl, decoration: const InputDecoration(labelText: 'Ciudad')),
+                    TextField(controller: _estadoCtrl, decoration: const InputDecoration(labelText: 'Estado')),
+                    TextField(controller: _paisCtrl, decoration: const InputDecoration(labelText: 'País')),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _descCtrl,
+                      maxLines: 3,
+                      decoration: const InputDecoration(labelText: 'Descripción', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // ==================================================
+                    // SECCIÓN AGENTES
+                    // ==================================================
+                    Container(
+                      color: Colors.grey[200],
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Agentes", style: TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle, color: Colors.blue),
+                                onPressed: () async {
+                                  await _showSeleccionarAgentes(context, TextEditingController());
+                                  setStateModal(() {
+                                    if (_agentesSel.isNotEmpty) {
+                                      for (var item in _agentesSel) {
+                                        editAgentes.add({
+                                          'Num_Placa': item['Num_Placa'] ?? 'S/N',
+                                          'Nombre': item['Nombre'] 
+                                        });
+                                      }
+                                      _agentesSel.clear(); 
+                                    }
+                                  });
+                                }, 
+                              ),
+                            ],
+                          ),
+                          if (editAgentes.isEmpty) const Text("Sin agentes", style: TextStyle(color: Colors.grey)),
+                          ...editAgentes.asMap().entries.map((entry) {
+                            int idx = entry.key;
+                            var ag = entry.value;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                dense: true,
+                                title: Text("Placa: ${ag['Num_Placa']}"),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                  onPressed: () {
+                                    setStateModal(() {
+                                      editAgentes.removeAt(idx);
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Container(
+
+                      color: Colors.grey[200], 
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Ciudadanos", style: TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle, color: Colors.green),
+                                onPressed: () async {
+                                  // Gracias a los cambios en el paso 1 y 2, este await ahora sí espera todo el proceso
+                                  await _showSeleccionarCiudadanos(context, TextEditingController());
+
+                                  setStateModal(() {
+                                    if (_involucradosSel.isNotEmpty) {
+                                      for (var item in _involucradosSel) {
+                                        List<dynamic> arts = [];
+                                        if (item['Articulos'] != null) {
+                                           arts = (item['Articulos'] as List).map((a) => {'Num_Art': a['N_Articulo']}).toList();
+                                        }
+
+                                        editInvolucrados.add({
+                                          'CURP': item['CURP'] ?? 'S/C',
+                                          'Id_Condena': item['Id_Condena'],
+                                          'Articulos': arts, 
+                                        });
+                                      }
+                                      _involucradosSel.clear(); 
+                                    }
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          if (editInvolucrados.isEmpty) const Text("Sin ciudadanos", style: TextStyle(color: Colors.grey)),
+                          ...editInvolucrados.asMap().entries.map((entry) {
+                            var inv = entry.value;
+                            int cantArticulos = (inv['Articulos'] is List) ? (inv['Articulos'] as List).length : 0;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              child: ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.person),
+                                title: Text("CURP: ${inv['CURP']}"),
+                                subtitle: Text("Artículos: $cantArticulos"),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    _agentesSel.clear();
+                    _involucradosSel.clear();
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      // 1. Limpieza de Agentes
+                      List<Map<String, dynamic>> agentesApi = editAgentes.map((a) {
+                        return { 'Num_Placa': a['Num_Placa'].toString() };
+                      }).toList();
+
+                      // 2. Limpieza de Involucrados
+                      List<Map<String, dynamic>> involucradosApi = editInvolucrados.map((inv) {
+                        List<dynamic> rawArts = inv['Articulos'] ?? [];
+                        List<Map<String, dynamic>> artsApi = rawArts.map((art) {
+                           var valorArt = art['Num_Art'] ?? art['N_Articulo'];
+                           return { 'Num_Art': valorArt.toString() };
+                        }).toList();
+
+                        return {
+                          'CURP': inv['CURP'].toString(),
+                          'Articulos': artsApi,
+                          'Id_Condena': inv['Id_Condena'].toString(), 
+                        };
+                      }).toList();
+
+                      // 3. CONSTRUIR EL JSON (¡AQUÍ AGREGAMOS EL ID!)
+                      Map<String, dynamic> datosUpdate = {
+                        '_id': report['_id'],
+                        'Estatus': isActivo ? 'A' : 'C',
+                        'Fecha': report['Fecha'],
+                        'Descripcion': _descCtrl.text,
+                        'Direccion': {
+                            'Calle': _calleCtrl.text,
+                            'Colonia': _coloniaCtrl.text,
+                            'Numero_Ext': _numExtCtrl.text,
+                            'Ciudad': _ciudadCtrl.text,
+                            'Estado': _estadoCtrl.text,
+                            'Pais': _paisCtrl.text,
+                        },
+                        'Informe_Agentes': agentesApi,
+                        'Informe_Involucrados': involucradosApi,
+                        'Foto': report['Foto'] ?? [] // Mantenemos las fotos viejas para que no se borren
+                      };
+
+                      // 4. Enviar (Nota que ya no pasamos el ID como argumento separado, va dentro del mapa)
+                      await _updateReportApi(datosUpdate);
+
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                      
+                    } catch (e) {
+                      print("Error: $e");
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Guardar Cambios'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
   // Auxiliar para campos de solo lectura
   Widget _buildReadOnlyField(String text) {
     return Container(
@@ -981,7 +1523,11 @@ class _InformesScreenState extends State<InformesScreen> {
         borderRadius: BorderRadius.circular(25),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
@@ -997,11 +1543,9 @@ class _InformesScreenState extends State<InformesScreen> {
       ),
       child: TextField(
         controller: ctrl,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
-        decoration: InputDecoration(
-          hintText: label,
-          border: InputBorder.none,
-        ),
+        decoration: InputDecoration(hintText: label, border: InputBorder.none),
       ),
     );
   }
@@ -1029,10 +1573,7 @@ class _InformesScreenState extends State<InformesScreen> {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
               ),
               TextField(
                 controller: controller,
@@ -1051,7 +1592,8 @@ class _InformesScreenState extends State<InformesScreen> {
           Positioned(
             right: 10,
             top: 10,
-            child: GestureDetector( // <--- Hacemos el icono clickeable
+            child: GestureDetector(
+              // <--- Hacemos el icono clickeable
               onTap: onIconPressed,
               child: Container(
                 padding: const EdgeInsets.all(4),
@@ -1062,12 +1604,10 @@ class _InformesScreenState extends State<InformesScreen> {
                 child: Icon(icon, size: 20, color: Colors.black54),
               ),
             ),
-          )
+          ),
       ],
     );
   }
-
- 
 
   Future<void> _addReport({
     required String calle,
@@ -1077,8 +1617,8 @@ class _InformesScreenState extends State<InformesScreen> {
     required String estado,
     required String pais,
     required String descripcion,
-    required String involucrados, // Nuevo parámetro
-    required String agentes, // Nuevo parámetro
+    required List<dynamic> involucrados,
+    required List<dynamic> agentes,
     required List<XFile> fotos,
     required bool isActivo, // Recibe el estado del candado
   }) async {
@@ -1086,6 +1626,30 @@ class _InformesScreenState extends State<InformesScreen> {
       'https://heimdall-qxbv.onrender.com/api/informes/add',
     );
     var request = http.MultipartRequest('POST', url);
+
+    // TRANSFORMACIÓN DE DATOS PARA LA API
+    // 1. Agentes: Solo enviar Num_Placa
+    List<Map<String, dynamic>> agentesApi = agentes.map((a) {
+      return {
+        'Num_Placa': a['Num_Placa'],
+      };
+    }).toList();
+
+    // 2. Involucrados: Transformar Articulos (N_Articulo -> Num_Art) y limpiar campos
+    List<Map<String, dynamic>> involucradosApi = involucrados.map((inv) {
+      List<dynamic> artsOriginal = inv['Articulos'] ?? [];
+      List<Map<String, dynamic>> artsApi = artsOriginal.map((art) {
+        return {
+          'Num_Art': art['N_Articulo'], // Mapeo clave
+        };
+      }).toList();
+
+      return {
+        'CURP': inv['CURP'],
+        'Articulos': artsApi,
+        'Id_Condena': inv['Id_Condena'],
+      };
+    }).toList();
 
     Map<String, dynamic> datos = {
       'Estatus': isActivo ? 'A' : 'C', // Usa el estado del candado para el API
@@ -1099,15 +1663,12 @@ class _InformesScreenState extends State<InformesScreen> {
         'Estado': estado,
         'Pais': pais,
       },
-      'Informe_Agentes': agentes.isNotEmpty
-          ? [agentes]
-          : [],
-      'Informe_Involucrados': involucrados.isNotEmpty
-          ? [involucrados]
-          : [],
+      'Informe_Agentes': agentesApi,
+      'Informe_Involucrados': involucradosApi,
     };
 
     // 2. Agrega los datos JSON como un campo 'datos'
+    print("PAYLOAD JSON: ${jsonEncode(datos)}"); // <--- LOG PARA DEBUG
     request.fields['datos'] = jsonEncode(datos);
 
     // 3. Agrega las fotos
@@ -1127,6 +1688,8 @@ class _InformesScreenState extends State<InformesScreen> {
       if (response.statusCode == 201) {
         setState(() {
           _futureInformes = fetchInformes();
+          _involucradosSel = [];
+          _agentesSel = [];
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Informe agregado con éxito')),
@@ -1266,9 +1829,7 @@ class _InformesScreenState extends State<InformesScreen> {
                               final c = informes[index];
                               return InfoCard(
                                 folio: c['_id'],
-                                estatus: c['Estatus'] == 'A'
-                                    ? 'Activo'
-                                    : 'Inactivo',
+                               estatus: c['Estatus'] == 'A' ? 'Activo' : 'Inactivo',
                                 fecha: c['Fecha_Informe'],
                                 calle:
                                     c['Direccion']['Calle'] ??
@@ -1291,6 +1852,15 @@ class _InformesScreenState extends State<InformesScreen> {
                                 involucrados: c['Informe_Involucrados'] ?? [],
                                 agentes: c['Informe_Agentes'] ?? [],
                                 fotos: c['Foto'] ?? [],
+                                onTap: () {
+                                // Limpiamos las listas globales de selección por seguridad antes de abrir
+                                setState(() {
+                                  _involucradosSel = [];
+                                  _agentesSel = [];
+                                });
+                                // Abrimos el modal de edición pasando el objeto completo 'c'
+                                _showEditReportModal(c);
+                              }
                               );
                             },
                           );
@@ -1357,6 +1927,7 @@ class InfoCard extends StatelessWidget {
   final List<dynamic> involucrados;
   final List<dynamic> agentes;
   final List<dynamic> fotos;
+  final VoidCallback onTap; // <--- NUEVO PARAMETRO
 
   const InfoCard({
     Key? key,
@@ -1373,98 +1944,16 @@ class InfoCard extends StatelessWidget {
     required this.involucrados,
     required this.agentes,
     required this.fotos,
+    required this.onTap, // <--- REQUERIDO
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final IconData statusIcon = estatus == 'Activo'
-        ? Icons.lock_open
-        : Icons.lock;
-
+    final IconData statusIcon = estatus == 'Activo' ? Icons.lock_open : Icons.lock;
     final Color statusColor = estatus == 'Activo' ? Colors.green : Colors.red;
 
     return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              title: Column(
-                children: [
-                  const Text(
-                    'Detalles del Informe',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const Divider(thickness: 2),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Informe: $folio'),
-                    const SizedBox(height: 10),
-                    Text('Estatus: $estatus'),
-                    const SizedBox(height: 10),
-                    Text('Fecha: $fecha'),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Dirección:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text('Calle: $calle'),
-                    Text('Número Exterior: $numeroExterior'),
-                    Text('Colonia: $colonia'),
-                    Text('Ciudad: $ciudad'),
-                    Text('Estado: $estado'),
-                    Text('País: $pais'),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Descripción:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(descripcion),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Involucrados:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    ...involucrados.map((inv) => Text('CURP: ${inv['CURP']}')),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Agentes:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    ...agentes.map((ag) => Text('Placa: ${ag['Num_Placa']}')),
-                    if (fotos.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Fotos:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      ...fotos.map((foto) => Text('URL: ${foto['URL']}')),
-                    ],
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cerrar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      onTap: onTap, // <--- AQUI EJECUTAMOS LA FUNCION DEL PADRE
       child: Card(
         elevation: 2.0,
         margin: const EdgeInsets.only(bottom: 16.0),
@@ -1487,20 +1976,13 @@ class InfoCard extends StatelessWidget {
                   children: [
                     Text(
                       'Folio: $folio',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.black,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Fecha: $fecha',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
-                      ),
+                      style: const TextStyle(fontSize: 16, color: Colors.black54),
                       textAlign: TextAlign.center,
                     ),
                   ],
